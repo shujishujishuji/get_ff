@@ -1,0 +1,124 @@
+{% extends 'layout.html' %}
+{% block title %}
+    Index
+{% endblock %}
+
+{% block headline %}
+    {{ title }}
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-3" id="msg">{{message}}</div>
+
+<!--vue.js container-->
+<div id="app" class="m-3">
+    <mycomp />
+</div>
+
+
+<!--mycomp's template-->
+{% raw %}
+<script type="text/x-template" id="mycomp-template">
+<div>
+<div class="alert alert-primary p-1">
+    <h5>{{alert_msg}}</h5>
+</div>
+
+<div class="form-group">
+    <p>URL一括取得</p>
+    <label for="url">URL:</label>
+    <div class="row">
+    <input type="text" id="url" name="url" class="form-control col" v-model="post_url">
+    <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
+    </div>
+</div>
+    <button v-on:click="getDescription" class="btn btn-primary" id="get_description">商品情報取得</button>
+    <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
+    <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
+</div>
+</script>
+{% endraw %}
+
+
+<!--Vue.js script-->
+<script>
+Vue.component('mycomp', {
+    template: '#mycomp-template',
+    data: function() {
+        return {
+            post_url: '',
+            alert_msg: 'welcome to this new world !!'
+        }
+    },
+    methods:{
+        // post_url
+        postUrl: function() {
+            this.alert_msg = '一括取得実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("url", this.post_url);
+            let self = this;
+            $.ajax({
+                type: 'POST',
+                url: '/post',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.post_url = '';
+                        self.alert_msg = '終了しました！！';
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
+            });
+        },
+        // get_description
+        getDescription: function(){
+            this.alert_msg = '商品情報取得実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/get_desc", function(data) {
+                if (data == 'True') {
+                    self.alert_msg = '終わりましたよ笑';
+                } else {
+                    self.alert_msg = data;
+                }
+            })
+        },
+        // delete_img
+        delImg: function(){
+            this.alert_msg = '商品情報取得実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/del_img", function(data){
+                if (data == 'True') {
+                    self.alert_msg = '消えたよ笑';
+                } else {
+                    self.alert_msg = data;
+                }
+            });
+        },
+        // delete_img
+        getStock: function(){
+            this.alert_msg = '在庫確認実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/get_stock", function(data){
+                self.alert_msg = data
+            });
+        }
+    },
+});
+
+
+// start Vue.
+new Vue({
+    el:'#app',
+});
+</script>
+{% endblock %}
+
+{% block footer %}
+    copyright 2019 shuji
+{% endblock %}
