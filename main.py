@@ -13,6 +13,7 @@ TODO:
 URLを指定して在庫ファイルから削除する関数
 マルチスレッドによる時間短縮
 在庫管理定期実行
+app化
 """
 # importエラーのためにパスを通す
 import sys
@@ -396,5 +397,53 @@ def del_img():
         return result
 
 
+# ブランドページのスクレイピング
+def scraping(url):
+    blands_list = []
+    driver = set_driver(url, True)
+    target_ul_list = driver.find_elements_by_css_selector('#slice-designers-index > div > div._c9b90c > div > ul > li > a')
+    for x in target_ul_list:
+        bland_name = x.text
+        bland_url = x.get_attribute('href')
+        blands_list.append({'bland': bland_name, 'url': bland_url})
+
+    for z in blands_list:
+        category, num = getter(z['url'])
+        z.update({'category': category, 'num': num})
+
+    with open('test.json', 'w', encoding='utf-8') as f:
+        json.dump(blands_list, f, indent=4)
+    driver.quit()
+
+
+# ブランドのカテゴリーとアイテム数の取得
+def getter(url):
+    t = []
+    num = ''
+    y = []
+    driver = set_driver(url, False)
+    target = driver.find_elements_by_xpath('//*[@id="slice-container"]/div[3]/div[2]/div[1]/div/div/div/ul/li[1]')
+    if len(target) > 0:
+        for x in target:
+            t.append(x.text)
+        y = t[0].split()
+
+    css = '#slice-container > div:nth-child(3) > div._d7c730 > div > div > div._185fbf > span'
+    ttt = driver.find_elements_by_css_selector(css)
+    if len(ttt) > 0:
+        for x in ttt:
+            num = re.sub("\\D", "", x.text)
+    driver.quit()
+    return y, num
+
+
+# jsonファイルをcsvに変換
+def json_to_csv(file_name):
+    df = pd.read_json(file_name)
+    df.to_csv('bland.csv')
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='localhost')
+    # scraping('https://www.farfetch.com/jp/designers/men')
+    # json_to_csv('test.json')
