@@ -39,6 +39,8 @@ import re
 import urllib.request
 import gspread
 import shutil
+import logging
+import logging.handlers
 
 from flask import Flask, render_template, request, session, \
     redirect, jsonify, current_app, g
@@ -62,6 +64,34 @@ app = Flask(__name__)
 # create database model
 engine = create_engine('sqlite:///items.sqlite3')
 Base = declarative_base()
+
+"""
+create logger
+"""
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.handlers.TimedRotatingFileHandler('logfile.log', when='D', interval=1, backupCount=0, encoding='utf-8', delay=False, utc=False, atTime=None)
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
+
+
+# logging decolater
+def log(func):
+    def wrapper(*args, **kwargs):
+        logger.info('START-{}'.format(func.__name__))
+        res = func(*args, **kwargs)
+        logger.info('END-{}'.format(func.__name__))
+        return res
+    return wrapper
 
 
 # model class
@@ -88,6 +118,7 @@ class Stock(Base):
 
 
 # seleniumのdriverのセットアップ
+@log
 def set_driver(url, headless=False):
     options = webdriver.ChromeOptions()
     if headless:
@@ -158,6 +189,7 @@ def get_pagesource(url):
     driver.quit()
 
 
+@log
 def get_src(source, tag_name, img_suffix, folder_name):
     """
         画像を取得してディレクトリに保存
@@ -177,6 +209,7 @@ def get_src(source, tag_name, img_suffix, folder_name):
             s, os.path.join(img_path, '{}{}'.format(i, img_suffix)))
 
 
+@log
 def get_description(driver, stock_check=None):
     """
         商品説明取得関数
@@ -188,7 +221,10 @@ def get_description(driver, stock_check=None):
     # 価格文字列を数字だけ抽出 headlessじゃないとダメ
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.CLASS_NAME, '_81fc25')))
-    price = driver.find_element_by_class_name('_81fc25').text
+    price_el = driver.find_element_by_class_name('_81fc25')
+    price = price_el.text
+    p_price = price_el.find_element_by_css_selector('div > span').text
+    pure_price = re.sub("\\D", "", p_price)
 
     # サイズと価格と在庫を取得
     if len(driver.find_elements_by_id('dropdown')):
@@ -196,7 +232,7 @@ def get_description(driver, stock_check=None):
         select = Select(select_id)
         sizes = select.options
         size_list = []
-        for i, g in enumerate(sizes):
+        for i, _ in enumerate(sizes):
             size_list.append(sizes[i].text)
         size = '\n'.join(size_list[1:])
     else:
@@ -204,6 +240,13 @@ def get_description(driver, stock_check=None):
 
     # 在庫管理の場合は以降はスキップ
     if stock_check is None:
+        # タイトル取得
+        title = ''
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR,
+                                              '#bannerComponents-Container > h1')))
+        title = driver.find_element_by_css_selector(
+            '#bannerComponents-Container > h1').text.replace('\n', ' ')
         # 商品説明,フィッティングガイド取得
         element_list = ['商品説明', 'フィッティングガイド', '配送＆返品無料引き取りサービス']
         text_list = []
@@ -214,9 +257,9 @@ def get_description(driver, stock_check=None):
                 panel_button.click()
                 time.sleep(1)
                 if x == '配送＆返品無料引き取りサービス':
-                    days = driver.find_element_by_xpath('//*[@id="panelInner-{}"]/div/div[2]/div/p'.format(d[-1])).text
+                    # 発送国名
                     country = driver.find_element_by_xpath('//*[@id="panelInner-{}"]/div/div[2]/p/span[2]'.format(d[-1])).text
-                    text_list += [days, country]
+                    text_list.append(country)
                 else:
                     texts = driver.find_element_by_id(d).text
                     text_list.append(texts)
@@ -228,16 +271,17 @@ def get_description(driver, stock_check=None):
         if len(driver.find_elements_by_xpath(size_button_xpath)):
             size_guide_button = driver.find_element_by_xpath(size_button_xpath)
             size_guide_button.click()
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'panelInner-0')))
             WebDriverWait(driver, 10).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR,
                                                   '#panelInner-0 > div > div > table')))
-            size_guide = driver.find_element_by_css_selector(
-                '#panelInner-0 > div > div > table').text
-        return price, size, desc, size_guide
+            size_guide = driver.find_elements_by_css_selector(
+                '#panelInner-0 > div > div > table')
+            if len(size_guide) > 0:
+                size_guide = size_guide[0].text
+        return price, size, desc, size_guide, title, pure_price
     return price, size
 
-
+@log
 def set_ss(key_file, sheet_name):
     """
         スプレッドシートのセッティング
@@ -275,6 +319,7 @@ def post_url():
     return url
 
 
+@log
 @app.route('/get_desc', methods=['GET'])
 def get_info():
     """
@@ -304,7 +349,7 @@ def get_info():
         for x in stock:
             stock_url.append(x['url'])
         # URL毎の処理
-        price = size = desc = size_guide = 'a'
+        price = size = desc = size_guide = title = pure_price = 'a'
         for i, url in enumerate(url_lis):
             if url in stock_url:
                 continue
@@ -314,14 +359,15 @@ def get_info():
             # 画像取得
             get_src(driver.page_source, '出品', '.jpg', str(i+1))
             # 商品説明取得
-            price, size, desc, size_guide = get_description(driver)
+            price, size, desc, size_guide, title, pure_price = get_description(driver)
             driver.quit()
 
             # スプレッドシート への書き込み
             cell_row = i+2
+            write_ss(ss, 'B{}'.format(cell_row), '【送料輸入税込】' + title)
             write_ss(ss, 'F{}'.format(cell_row), desc)
             write_ss(ss, 'G{}'.format(cell_row), size + '\n\n' + size_guide)
-            write_ss(ss, 'Z{}'.format(cell_row), price)
+            write_ss(ss, 'Z{}'.format(cell_row), pure_price)
 
             # 在庫データベースの更新
             stock_info = price + size
@@ -339,6 +385,7 @@ def get_info():
         return result
 
 
+@log
 @app.route('/get_stock', methods=['GET'])
 def check_stock():
     """
@@ -383,6 +430,7 @@ def check_stock():
         return result
 
 
+@log
 @app.route('/del_img', methods=['GET'])
 def del_img():
     """出品フォルダのファイルを全削除する

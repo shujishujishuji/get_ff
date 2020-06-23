@@ -1,3 +1,4 @@
 *.json
 出品/
 *.sqlite3
+*.log
