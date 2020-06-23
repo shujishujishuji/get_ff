@@ -76,7 +76,7 @@ fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
 # create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 # add the handlers to the logger
@@ -247,6 +247,8 @@ def get_description(driver, stock_check=None):
                                               '#bannerComponents-Container > h1')))
         title = driver.find_element_by_css_selector(
             '#bannerComponents-Container > h1').text.replace('\n', ' ')
+        # log出力
+        logger.info(title)
         # 商品説明,フィッティングガイド取得
         element_list = ['商品説明', 'フィッティングガイド', '配送＆返品無料引き取りサービス']
         text_list = []
@@ -351,6 +353,8 @@ def get_info():
         # URL毎の処理
         price = size = desc = size_guide = title = pure_price = 'a'
         for i, url in enumerate(url_lis):
+            # log出力
+            logger.info(url)
             if url in stock_url:
                 continue
 
