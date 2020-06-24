@@ -26,7 +26,7 @@
 </div>
 
 <div class="form-group">
-    <p>URL一括取得</p>
+    <p>【URL一括取得】</p>
     <label for="url">URL:</label>
     <div class="row">
     <input type="text" id="url" name="url" class="form-control col" v-model="post_url">
@@ -36,6 +36,16 @@
     <button v-on:click="getDescription" class="btn btn-primary" id="get_description">商品情報取得</button>
     <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
     <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
+<br>
+<br>
+<div class="form-group">
+    <p>【在庫削除】</p>
+    <label for="id">在庫ID:</label>
+    <div class="row">
+    <input type="text" id="id" name="id" class="form-control col" v-model="post_id">
+    <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
+    </div>
+</div>
 </div>
 </script>
 {% endraw %}
@@ -48,7 +58,8 @@ Vue.component('mycomp', {
     data: function() {
         return {
             post_url: '',
-            alert_msg: 'welcome to this new world !!'
+            alert_msg: 'welcome to this new world !!',
+            post_id: ''
         }
     },
     methods:{
@@ -100,12 +111,36 @@ Vue.component('mycomp', {
                 }
             });
         },
-        // delete_img
+        // check_stock
         getStock: function(){
             this.alert_msg = '在庫確認実行中です。けっこう時間かかります。しばらくお待ちください。';
             let self = this;
             $.get("/get_stock", function(data){
                 self.alert_msg = data
+            });
+        },
+        // delete_stock
+        delStock: function(){
+            this.alert_msg = '在庫削除実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("id", this.post_id);
+            let self = this;
+            $.ajax({
+                type: 'POST',
+                url: '/del_stock',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.post_id = '';
+                        self.alert_msg = '終了しました！！';
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
             });
         }
     },

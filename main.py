@@ -288,6 +288,7 @@ def get_description(driver, stock_check=None):
         return price, size, desc, size_guide, title, pure_price
     return price, size
 
+
 @log
 def set_ss(key_file, sheet_name):
     """
@@ -395,8 +396,8 @@ def get_info():
         return result
 
 
-@log
 @app.route('/get_stock', methods=['GET'])
+@log
 def check_stock():
     """
         在庫管理実行関数
@@ -411,11 +412,14 @@ def check_stock():
         res = ses.query(Stock).all()
         ses.close()
         stock = []
+        diff_list = []
         for item in res:
             stock.append(item.to_dict())
 
         # 差分比較
         for item in stock:
+            logger.info(item['id'])
+            logger.info(item['url'])
             if item['del_flg'] == 0:
                 time.sleep(1)
                 driver = set_driver(item['url'])
@@ -433,9 +437,19 @@ def check_stock():
                             {Stock.stock_info: val, Stock.updated: dt.now()})
                     ses.commit()
                     ses.close()
+
+                    # 在庫情報と更新情報をリストに追加する
+                    diff_data = {'id': item['id'],
+                                 'URL': item['url'],
+                                 'stock_info': item['stock_info'],
+                                 'diff_info': val}
+                    diff_list.append(diff_data)
+        logger.warning(diff_list)
+        json_to_csv(diff_list, 'diff.csv')
         result = '終わったよ(笑)'
     except Exception as e:
-        result = e
+        result = str(e)
+        logger.error(e)
     finally:
         return result
 
@@ -453,6 +467,22 @@ def del_img():
         result = str(e)
     finally:
         return result
+
+
+@app.route('/del_stock', methods=['POST'])
+def del_stock():
+    id_list = request.form.get('id').split(',')
+    Session = sessionmaker(bind=engine)
+    ses = Session()
+    query = ses.query(Stock)
+    for x in id_list:
+        if x.isdecimal():
+            query.filter(
+                Stock.id == int(x)).update(
+                    {Stock.del_flg: 1})
+    ses.commit()
+    ses.close()
+    return 'True'
 
 
 # ブランドページのスクレイピング
@@ -496,12 +526,11 @@ def getter(url):
 
 
 # jsonファイルをcsvに変換
-def json_to_csv(file_name):
-    df = pd.read_json(file_name)
-    df.to_csv('bland.csv')
+def json_to_csv(json_file, csv_file):
+    df = pd.DataFrame(json_file)
+    df.to_csv(csv_file)
 
 
 if __name__ == '__main__':
     app.run(debug=True, host='localhost')
     # scraping('https://www.farfetch.com/jp/designers/men')
-    # json_to_csv('test.json')
