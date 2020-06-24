@@ -471,6 +471,8 @@ def del_img():
 
 @app.route('/del_stock', methods=['POST'])
 def del_stock():
+    """在庫削除関数
+    """
     id_list = request.form.get('id').split(',')
     Session = sessionmaker(bind=engine)
     ses = Session()
