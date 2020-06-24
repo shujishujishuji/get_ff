@@ -138,6 +138,7 @@ class GetList:
     """
         商品一覧ページのURLを一括取得するクラス
     """
+    @log
     def get_page_list(self, url):
         """
             複数ページURLを取得し、スプレッドシートに記載
@@ -156,6 +157,7 @@ class GetList:
         if attr_val == tag.get_attribute(attr_name):
             return tag
 
+    @log
     def move_page(self, url):
         """商品一覧ページから各商品のURLリストを作成する。
         　　リストをforで回して、各ページの情報を取得する。
@@ -172,6 +174,9 @@ class GetList:
                 a_tags = y.find_elements_by_tag_name('a')
                 for z in a_tags:
                     page_src = z.get_attribute('href')
+
+                    #log出力
+                    logger.info(f'URL: {page_src}')
                     page_src_list.append(page_src)
             return page_src_list
         finally:
@@ -248,7 +253,7 @@ def get_description(driver, stock_check=None):
         title = driver.find_element_by_css_selector(
             '#bannerComponents-Container > h1').text.replace('\n', ' ')
         # log出力
-        logger.info(title)
+        logger.info(f'title: {title}')
         # 商品説明,フィッティングガイド取得
         element_list = ['商品説明', 'フィッティングガイド', '配送＆返品無料引き取りサービス']
         text_list = []
@@ -354,7 +359,7 @@ def get_info():
         price = size = desc = size_guide = title = pure_price = 'a'
         for i, url in enumerate(url_lis):
             # log出力
-            logger.info(url)
+            logger.info(f'URL: {url}')
             if url in stock_url:
                 continue
 
@@ -368,6 +373,7 @@ def get_info():
 
             # スプレッドシート への書き込み
             cell_row = i+2
+            write_ss(ss, 'A{}'.format(cell_row), str(i+1))
             write_ss(ss, 'B{}'.format(cell_row), '【送料輸入税込】' + title)
             write_ss(ss, 'F{}'.format(cell_row), desc)
             write_ss(ss, 'G{}'.format(cell_row), size + '\n\n' + size_guide)
@@ -381,10 +387,10 @@ def get_info():
             ses.add(stock_obj)
             ses.commit()
             ses.close()
-
         result = 'True'
     except Exception as e:
         result = str(e)
+        logger.error(e)
     finally:
         return result
 
