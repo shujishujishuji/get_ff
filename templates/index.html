@@ -33,7 +33,14 @@
     <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
     </div>
 </div>
-    <button v-on:click="getDescription" class="btn btn-primary" id="get_description">商品情報取得</button>
+<div class="form-group">
+    <p>【情報取得】</p>
+    <label for="deadline">購入期限: [yyyy/mm/dd]</label>
+    <div class="row">
+    <input type="text" id="deadline" name="deadline" class="form-control col" v-model="post_deadline">
+    <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">情報取得</button>
+    </div>
+</div>
     <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
     <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
 <br>
@@ -59,7 +66,8 @@ Vue.component('mycomp', {
         return {
             post_url: '',
             alert_msg: 'welcome to this new world !!',
-            post_id: ''
+            post_id: '',
+            post_deadline: '',
         }
     },
     methods:{
@@ -90,14 +98,26 @@ Vue.component('mycomp', {
         // get_description
         getDescription: function(){
             this.alert_msg = '商品情報取得実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("deadline", this.post_deadline);
             let self = this;
-            $.get("/get_desc", function(data) {
-                if (data == 'True') {
-                    self.alert_msg = '終わりましたよ笑';
-                } else {
-                    self.alert_msg = data;
+            $.ajax({
+                type: 'POST',
+                url: '/post_desc',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.post_deadline = '';
+                        self.alert_msg = '終了しましたyo~~~！！';
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
                 }
-            })
+            });
         },
         // delete_img
         delImg: function(){

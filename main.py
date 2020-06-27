@@ -14,6 +14,8 @@ URLを指定して在庫ファイルから削除する関数
 マルチスレッドによる時間短縮
 在庫管理定期実行
 app化
+スプレッドシートの入力欄の一括削除関数
+スレッド化してさらに高速にする。
 """
 # importエラーのためにパスを通す
 import sys
@@ -133,6 +135,27 @@ def set_driver(url, headless=False):
     driver.get(url)
     return driver
 
+"""
+スプレッドシートを扱うクラスにする
+"""
+@log
+def set_ss(key_file, sheet_name):
+    """
+        スプレッドシートのセッティング
+    """
+    # 2つのAPIを記述しないとリフレッシュトークンを3600秒毎に発行し続けなければならない
+    scope = ['https://spreadsheets.google.com/feeds',
+            'https://www.googleapis.com/auth/drive']
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file, scope)
+    gc = gspread.authorize(credentials)
+    wks = gc.open(sheet_name)
+    return wks
+
+
+def write_ss(ss, cell, text):
+    ss.update_acell(cell, text)
+
 
 class GetList:
     """
@@ -143,11 +166,13 @@ class GetList:
         """
             複数ページURLを取得し、スプレッドシートに記載
         """
-        ss = set_ss(KEY_FILE, SHEET_NAME)
+        ss = set_ss(KEY_FILE, SHEET_NAME).sheet1
+        url_lis = ss.col_values(9)
+        blank_row = len(url_lis) + 1
         page_list = self.move_page(url)
         for i, uri in enumerate(page_list):
             time.sleep(1)
-            url_cell = 'I{}'.format(i+2)
+            url_cell = 'I{}'.format(i + blank_row)
             write_ss(ss, url_cell, uri)
 
     def get_tag(self, tag, attr_name, attr_val):
@@ -251,7 +276,7 @@ def get_description(driver, stock_check=None):
             EC.visibility_of_element_located((By.CSS_SELECTOR,
                                               '#bannerComponents-Container > h1')))
         title = driver.find_element_by_css_selector(
-            '#bannerComponents-Container > h1').text.replace('\n', ' ')
+            '#bannerComponents-Container > h1').text
         # log出力
         logger.info(f'title: {title}')
         # 商品説明,フィッティングガイド取得
@@ -289,25 +314,6 @@ def get_description(driver, stock_check=None):
     return price, size
 
 
-@log
-def set_ss(key_file, sheet_name):
-    """
-        スプレッドシートのセッティング
-    """
-    # 2つのAPIを記述しないとリフレッシュトークンを3600秒毎に発行し続けなければならない
-    scope = ['https://spreadsheets.google.com/feeds',
-            'https://www.googleapis.com/auth/drive']
-
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file, scope)
-    gc = gspread.authorize(credentials)
-    wks = gc.open(sheet_name).sheet1
-    return wks
-
-
-def write_ss(ss, cell, text):
-    ss.update_acell(cell, text)
-
-
 # home画面の表示
 @app.route('/', methods=['GET'])
 def index():
@@ -328,7 +334,7 @@ def post_url():
 
 
 @log
-@app.route('/get_desc', methods=['GET'])
+@app.route('/post_desc', methods=['POST'])
 def get_info():
     """
         情報取得実行関数
@@ -337,8 +343,13 @@ def get_info():
         在庫リストに追加する。
     """
     try:
+        deadline = request.form.get('deadline')
         # spred_sheetのセットアップ
-        ss = set_ss(KEY_FILE, SHEET_NAME)
+        sss = set_ss(KEY_FILE, SHEET_NAME)
+        ss = sss.worksheet('出品シート')
+        bland_dic = sss.worksheet('ブランド').get_all_records()
+        category_dic = sss.worksheet('カテゴリ').get_all_records()
+        area_dic = sss.worksheet('地域').get_all_records()
 
         # スプレッドシートからURLリスト作成
         url_lis = ss.col_values(9)[1:]
@@ -361,26 +372,61 @@ def get_info():
         for i, url in enumerate(url_lis):
             # log出力
             logger.info(f'URL: {url}')
+            """
             if url in stock_url:
                 continue
+            """
 
             # driverセットアップ
             driver = set_driver(url)
             # 画像取得
-            get_src(driver.page_source, '出品', '.jpg', str(i+1))
+            # get_src(driver.page_source, '出品', '.jpg', str(i+1))
             # 商品説明取得
             price, size, desc, size_guide, title, pure_price = get_description(driver)
             driver.quit()
 
+            # 初期化
+            bland_str = category_str = area_str = ''
+            # ブランド名の取得
+            t = re.search(r"^.*", title).group(0)
+            bland_lis = [str(bland['ブランド']) for bland in bland_dic if t in str(bland['ff_ブランド'])]
+            if len(bland_lis) > 0:
+                bland_str = bland_lis[0]
+
+            # カテゴリーの取得
+            category_lis = [str(_category['カテゴリ']) for _category in category_dic if str(_category['ff_カテゴリ']) in title]
+            if len(category_lis) > 0:
+                category_str = category_lis[0]
+
+            # 商品説明からいらない部分を削除
+            desc_list = desc.split('\n')
+            # スタイルIDのインデックスを検索
+            _index = [i for i, x in enumerate(desc_list) if 'ID:' in x]
+            # 発送地の取得
+            c = re.search(r"^.*のショップ", desc_list[-1]).group(0).replace('のショップ', '')
+            area_lis = [str(area['地域']) for area in area_dic if c in str(area['ff_地域'])]
+            if len(area_lis) > 0:
+                area_str = area_lis[0]
+
+            # ブランド名、商品名、発送地を削除
+            del desc_list[_index[0]], desc_list[0:3], desc_list[-1]
+            desc = '\n'.join(desc_list)
+
             # スプレッドシート への書き込み
             cell_row = i+2
-            write_ss(ss, 'A{}'.format(cell_row), str(i+1))
-            write_ss(ss, 'B{}'.format(cell_row), '【送料輸入税込】' + title)
-            write_ss(ss, 'F{}'.format(cell_row), desc)
-            write_ss(ss, 'G{}'.format(cell_row), size + '\n\n' + size_guide)
-            write_ss(ss, 'Z{}'.format(cell_row), pure_price)
+            ss_data = [{'range': 'A{}:H{}'.format(cell_row, cell_row),
+                        'values': [[str(i+1), '【送料輸入税込】' + title.replace('\n', ' '),
+                                    bland_str, '', category_str,
+                                    desc, size + '\n\n' + size_guide, deadline]]},
+                       {'range': 'J{}'.format(cell_row),
+                        'values': [[area_str]]},
+                       {'range': 'Z{}'.format(cell_row),
+                        'values': [[pure_price]]}]
+            ss.batch_update(ss_data)
+
 
             # 在庫データベースの更新
+            """
             stock_info = price + size
             stock_obj = Stock(url=url, stock_info=stock_info)
             Session = sessionmaker(bind=engine)
@@ -388,6 +434,7 @@ def get_info():
             ses.add(stock_obj)
             ses.commit()
             ses.close()
+            """
         result = 'True'
     except Exception as e:
         result = str(e)
@@ -501,8 +548,7 @@ def scraping(url):
         category, num = getter(z['url'])
         z.update({'category': category, 'num': num})
 
-    with open('test.json', 'w', encoding='utf-8') as f:
-        json.dump(blands_list, f, indent=4)
+    json_to_csv(blands_list, 'ff_women_bland.csv')
     driver.quit()
 
 
@@ -535,4 +581,4 @@ def json_to_csv(json_file, csv_file):
 
 if __name__ == '__main__':
     app.run(debug=True, host='localhost')
-    # scraping('https://www.farfetch.com/jp/designers/men')
+    # scraping('https://www.farfetch.com/jp/designers/women')
