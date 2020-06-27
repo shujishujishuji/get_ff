@@ -441,7 +441,6 @@ def get_info():
             ss.batch_update(ss_data)
 
             # 在庫データベースの更新
-            """
             stock_info = price + size
             stock_obj = Stock(url=url, stock_info=stock_info)
             Session = sessionmaker(bind=engine)
@@ -449,7 +448,6 @@ def get_info():
             ses.add(stock_obj)
             ses.commit()
             ses.close()
-            """
         result = 'True'
     except Exception as e:
         result = str(e)
