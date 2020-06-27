@@ -9,7 +9,6 @@
 6.在庫状況に変化のあったものを削除
 
 TODO:
-取得情報の貼り付け方を考える
 URLを指定して在庫ファイルから削除する関数
 マルチスレッドによる時間短縮
 在庫管理定期実行
@@ -153,8 +152,20 @@ def set_ss(key_file, sheet_name):
     return wks
 
 
-def write_ss(ss, cell, text):
-    ss.update_acell(cell, text)
+@app.route('/del_ss', methods=['GET'])
+def del_cells():
+    ss = set_ss(KEY_FILE, SHEET_NAME).sheet1
+    del_lis = [['', '', '', '', '', '', '', '', '', ''] for _ in range(199)]
+    del_z = [[''] for _ in range(199)]
+    del_a = [['', '', ''] for _ in range(199)]
+    ss_data = [{'range': 'A2:J200',
+                'values': del_lis},
+               {'range': 'Z2:Z200',
+                'values': del_z},
+               {'range': 'AC2:AE200',
+                'values': del_a}]
+    ss.batch_update(ss_data)
+    return 'おわた、おわたwww'
 
 
 class GetList:
@@ -172,8 +183,7 @@ class GetList:
         page_list = self.move_page(url)
         for i, uri in enumerate(page_list):
             time.sleep(1)
-            url_cell = 'I{}'.format(i + blank_row)
-            write_ss(ss, url_cell, uri)
+            ss.update_acell('I{}'.format(i + blank_row), uri)
 
     def get_tag(self, tag, attr_name, attr_val):
         """
@@ -319,7 +329,7 @@ def get_description(driver, stock_check=None):
 def index():
     return render_template(
         'index.html',
-        teitle='Index',
+        title='商品情報取得',
         message='商品情報取得'
     )
 
@@ -343,12 +353,18 @@ def get_info():
         在庫リストに追加する。
     """
     try:
+        # GUIからの入力値
         deadline = request.form.get('deadline')
+        ratio = request.form.get('ratio')
+        overship = request.form.get('overship')
+        domship = request.form.get('domship')
+        cat = request.form.get('category')
+
         # spred_sheetのセットアップ
         sss = set_ss(KEY_FILE, SHEET_NAME)
         ss = sss.worksheet('出品シート')
         bland_dic = sss.worksheet('ブランド').get_all_records()
-        category_dic = sss.worksheet('カテゴリ').get_all_records()
+        category_dic = sss.worksheet(str(cat)).get_all_records()
         area_dic = sss.worksheet('地域').get_all_records()
 
         # スプレッドシートからURLリスト作成
@@ -372,10 +388,8 @@ def get_info():
         for i, url in enumerate(url_lis):
             # log出力
             logger.info(f'URL: {url}')
-            """
             if url in stock_url:
                 continue
-            """
 
             # driverセットアップ
             driver = set_driver(url)
@@ -389,7 +403,7 @@ def get_info():
             bland_str = category_str = area_str = ''
             # ブランド名の取得
             t = re.search(r"^.*", title).group(0)
-            bland_lis = [str(bland['ブランド']) for bland in bland_dic if t in str(bland['ff_ブランド'])]
+            bland_lis = [str(bland['ブランド']) for bland in bland_dic if str(t).lower() in str(bland['ff_ブランド']).lower()]
             if len(bland_lis) > 0:
                 bland_str = bland_lis[0]
 
@@ -421,9 +435,10 @@ def get_info():
                        {'range': 'J{}'.format(cell_row),
                         'values': [[area_str]]},
                        {'range': 'Z{}'.format(cell_row),
-                        'values': [[pure_price]]}]
+                        'values': [[pure_price]]},
+                       {'range': 'AC{}:AE{}'.format(cell_row, cell_row),
+                        'values': [[ratio, overship, domship]]}]
             ss.batch_update(ss_data)
-
 
             # 在庫データベースの更新
             """

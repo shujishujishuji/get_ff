@@ -9,8 +9,6 @@
 
 {% block content %}
 
-<div class="mb-3" id="msg">{{message}}</div>
-
 <!--vue.js container-->
 <div id="app" class="m-3">
     <mycomp />
@@ -26,33 +24,54 @@
 </div>
 
 <div class="form-group">
-    <p>【URL一括取得】</p>
-    <label for="url">URL:</label>
-    <div class="row">
-    <input type="text" id="url" name="url" class="form-control col" v-model="post_url">
+    <h4>【URL一括取得】</h4>
+    <label for="url">URL</label>
+    <input type="text" id="url" name="url" class="form-control" placeholder="http://xxxxx@xxxx.com" v-model="post_url">
     <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
+</div>
+<br><br>
+<h4>【情報取得】</h4>
+<div class="form-row">
+    <div class="form-group col">
+        <label for="category">カテゴリ</label>
+        <select type="text" id="category" name="category" class="form-control" placeholder="" v-model="post_category">
+            <option value="レディース">レディース</option>
+            <option value="メンズ">メンズ</option>
+            <option value="その他">その他</option>
+        </select>
+    </div>
+    <div class="form-group col">
+        <label for="deadline">購入期限</label>
+        <input type="text" id="deadline" name="deadline" class="form-control" placeholder="yyyy/mm/dd" v-model="post_deadline">
+    </div>
+    <div class="form-group col">
+        <label for="ratio">倍率</label>
+        <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％" v-model="post_ratio">
     </div>
 </div>
-<div class="form-group">
-    <p>【情報取得】</p>
-    <label for="deadline">購入期限: [yyyy/mm/dd]</label>
-    <div class="row">
-    <input type="text" id="deadline" name="deadline" class="form-control col" v-model="post_deadline">
+<div class="form-row">
+    <div class="form-group col">
+        <label for="overship">海外送料</label>
+        <input type="text" id="overship" name="overship" class="form-control" placeholder="1234" v-model="post_overship">
+    </div>
+    <div class="form-group col">
+        <label for="domship">国内送料</label>
+        <input type="text" id="domship" name="domship" class="form-control" placeholder="6789" v-model="post_domship">
+    </div>
+</div>
     <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">情報取得</button>
-    </div>
-</div>
-    <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
-    <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
-<br>
-<br>
+<br><br>
 <div class="form-group">
-    <p>【在庫削除】</p>
-    <label for="id">在庫ID:</label>
+    <h4>【在庫削除】</h4>
+    <label for="id">在庫ID</label>
     <div class="row">
-    <input type="text" id="id" name="id" class="form-control col" v-model="post_id">
+    <input type="text" id="id" name="id" class="form-control col" placeholder="1,2,3,4..." v-model="post_id">
     <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
     </div>
 </div>
+    <button v-on:click="delSs" class="btn btn-primary" id="delete_spreadsheet">スプレッドシート削除</button>
+    <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
+    <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
 </div>
 </script>
 {% endraw %}
@@ -68,6 +87,10 @@ Vue.component('mycomp', {
             alert_msg: 'welcome to this new world !!',
             post_id: '',
             post_deadline: '',
+            post_ratio: '',
+            post_overship: '',
+            post_domship: '',
+            post_category: 'メンズ'
         }
     },
     methods:{
@@ -100,6 +123,10 @@ Vue.component('mycomp', {
             this.alert_msg = '商品情報取得実行中です。けっこう時間かかります。しばらくお待ちください。';
             let formData = new FormData();
             formData.append("deadline", this.post_deadline);
+            formData.append("ratio", this.post_ratio);
+            formData.append("overship", this.post_overship);
+            formData.append("domship", this.post_domship);
+            formData.append("category", this.post_category);
             let self = this;
             $.ajax({
                 type: 'POST',
@@ -111,6 +138,9 @@ Vue.component('mycomp', {
                 success: function(data) {
                     if(data != null){
                         self.post_deadline = '';
+                        self.post_ratio = '';
+                        self.post_overship = '';
+                        self.post_domship = '';
                         self.alert_msg = '終了しましたyo~~~！！';
                     }
                 },
@@ -162,7 +192,15 @@ Vue.component('mycomp', {
                     self.alert_msg = 'URL送信時にエラーが発生しました。';
                 }
             });
-        }
+        },
+        // check_stock
+        delSs: function(){
+            this.alert_msg = 'スプレッドシート削除中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/del_ss", function(data){
+                self.alert_msg = data
+            });
+        },
     },
 });
 
