@@ -156,7 +156,7 @@ def set_ss(key_file, sheet_name):
 
 @app.route('/del_ss', methods=['GET'])
 def del_cells():
-    ss = set_ss(KEY_FILE, SHEET_NAME).sheet1
+    ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('出品シート')
     del_lis = [['', '', '', '', '', '', '', '', '', ''] for _ in range(199)]
     del_z = [[''] for _ in range(199)]
     del_a = [['', '', ''] for _ in range(199)]
