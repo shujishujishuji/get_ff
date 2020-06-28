@@ -66,7 +66,13 @@ create logger
 """
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.handlers.TimedRotatingFileHandler('logfile.log', when='D', interval=1, backupCount=0, encoding='utf-8', delay=False, utc=False, atTime=None)
+fh = logging.handlers.TimedRotatingFileHandler('logfile.log',
+                                               when='D',
+                                               interval=1,
+                                               backupCount=0,
+                                               encoding='utf-8',
+                                               delay=False,
+                                               utc=False, atTime=None)
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -139,9 +145,10 @@ def set_ss(key_file, sheet_name):
     """
     # 2つのAPIを記述しないとリフレッシュトークンを3600秒毎に発行し続けなければならない
     scope = ['https://spreadsheets.google.com/feeds',
-            'https://www.googleapis.com/auth/drive']
+             'https://www.googleapis.com/auth/drive']
 
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file, scope)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(key_file,
+                                                                   scope)
     gc = gspread.authorize(credentials)
     wks = gc.open(sheet_name)
     return wks
@@ -176,7 +183,8 @@ class GetList:
         url_lis = ss.col_values(9)
         page_list = self.move_page(url)
         page_lis = [[x] for x in page_list]
-        ss_data = [{'range': 'I{}:I{}'.format(len(url_lis) + 1, len(url_lis) + len(page_list)),
+        ss_data = [{'range': 'I{}:I{}'.format(len(url_lis) + 1,
+                                              len(url_lis) + len(page_list)),
                     'values': page_lis}]
         ss.batch_update(ss_data)
 
@@ -198,14 +206,17 @@ class GetList:
             ul_list = []
             page_src_list = []
             for x in ul_tags:
-                if self.get_tag(x, 'data-test', 'product-card-list') is not None:
-                    ul_list.append(self.get_tag(x, 'data-test', 'product-card-list'))
+                if self.get_tag(x,
+                                'data-test',
+                                'product-card-list') is not None:
+                    ul_list.append(self.get_tag(x, 'data-test',
+                                                'product-card-list'))
             for y in ul_list:
                 a_tags = y.find_elements_by_tag_name('a')
                 for z in a_tags:
                     page_src = z.get_attribute('href')
 
-                    #log出力
+                    # log出力
                     logger.info(f'URL: {page_src}')
                     page_src_list.append(page_src)
             return page_src_list
@@ -278,8 +289,8 @@ def get_description(driver, stock_check=None):
         # タイトル取得
         title = ''
         WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR,
-                                              '#bannerComponents-Container > h1')))
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, '#bannerComponents-Container > h1')))
         title = driver.find_element_by_css_selector(
             '#bannerComponents-Container > h1').text
         # log出力
@@ -295,7 +306,9 @@ def get_description(driver, stock_check=None):
                 time.sleep(1)
                 if x == '配送＆返品無料引き取りサービス':
                     # 発送国名
-                    country = driver.find_element_by_xpath('//*[@id="panelInner-{}"]/div/div[2]/p/span[2]'.format(d[-1])).text
+                    country = driver.find_element_by_xpath(
+                        '//*[@id="panelInner-{}"]/div/div[2]/p/span[2]'.format(
+                            d[-1])).text
                     text_list.append(country)
                 else:
                     texts = driver.find_element_by_id(d).text
@@ -309,8 +322,8 @@ def get_description(driver, stock_check=None):
             size_guide_button = driver.find_element_by_xpath(size_button_xpath)
             size_guide_button.click()
             WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR,
-                                                  '#panelInner-0 > div > div > table')))
+                EC.visibility_of_element_located(
+                    (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
             size_guide = driver.find_elements_by_css_selector(
                 '#panelInner-0 > div > div > table')
             if len(size_guide) > 0:
@@ -353,6 +366,7 @@ def get_info():
         overship = request.form.get('overship')
         domship = request.form.get('domship')
         cat = request.form.get('category')
+        catchcopy = request.form.get('catchcopy')
 
         # spred_sheetのセットアップ
         sss = set_ss(KEY_FILE, SHEET_NAME)
@@ -412,7 +426,8 @@ def get_info():
             _index = [i for i, x in enumerate(desc_list) if 'ID:' in x]
 
             # 発送地の取得
-            c = re.search(r"^.*のショップ", desc_list[-1]).group(0).replace('のショップ', '')
+            c = re.search(
+                r"^.*のショップ", desc_list[-1]).group(0).replace('のショップ', '')
             area_lis = [str(area['地域']) for area in area_dic if c in str(area['ff_地域'])]
             if len(area_lis) > 0:
                 area_str = area_lis[0]
@@ -424,9 +439,13 @@ def get_info():
             # スプレッドシート への書き込み
             cell_row = i+2
             ss_data = [{'range': 'A{}:H{}'.format(cell_row, cell_row),
-                        'values': [[str(i+1), '【送料輸入税込】' + title.replace('\n', ' '),
-                                    bland_str, '', category_str,
-                                    desc, size + '\n\n' + size_guide, deadline]]},
+                        'values': [[str(i+1),
+                                    catchcopy + title.replace('\n', ' '),
+                                    bland_str, '',
+                                    category_str,
+                                    desc,
+                                    size + '\n\n' + size_guide,
+                                    deadline]]},
                        {'range': 'J{}'.format(cell_row),
                         'values': [[area_str]]},
                        {'range': 'Z{}'.format(cell_row),
@@ -546,7 +565,8 @@ def del_stock():
 def scraping(url):
     blands_list = []
     driver = set_driver(url, True)
-    target_ul_list = driver.find_elements_by_css_selector('#slice-designers-index > div > div._c9b90c > div > ul > li > a')
+    target_ul_list = driver.find_elements_by_css_selector(
+        '#slice-designers-index > div > div._c9b90c > div > ul > li > a')
     for x in target_ul_list:
         bland_name = x.text
         bland_url = x.get_attribute('href')
@@ -566,7 +586,8 @@ def getter(url):
     num = ''
     y = []
     driver = set_driver(url, False)
-    target = driver.find_elements_by_xpath('//*[@id="slice-container"]/div[3]/div[2]/div[1]/div/div/div/ul/li[1]')
+    target = driver.find_elements_by_xpath(
+        '//*[@id="slice-container"]/div[3]/div[2]/div[1]/div/div/div/ul/li[1]')
     if len(target) > 0:
         for x in target:
             t.append(x.text)

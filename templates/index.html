@@ -69,6 +69,10 @@
         </div>
         <div class="form-row">
             <div class="form-group col">
+                <label for="catchcopy">キャッチコピー</label>
+                <input type="text" id="catchcopy" name="catchcopy" class="form-control" placeholder="【送料輸入税込】" v-model="post_catchcopy">
+            </div>
+            <div class="form-group col">
                 <label for="overship">海外送料</label>
                 <input type="text" id="overship" name="overship" class="form-control" placeholder="1234" v-model="post_overship">
             </div>
@@ -120,7 +124,8 @@ Vue.component('mycomp', {
             post_ratio: '',
             post_overship: '',
             post_domship: '',
-            post_category: 'メンズ'
+            post_category: 'メンズ',
+            post_catchcopy: '【送料輸入税込】'
         }
     },
     methods:{
@@ -157,6 +162,7 @@ Vue.component('mycomp', {
             formData.append("overship", this.post_overship);
             formData.append("domship", this.post_domship);
             formData.append("category", this.post_category);
+            formData.append("catchcopy", this.post_catchcopy);
             let self = this;
             $.ajax({
                 type: 'POST',

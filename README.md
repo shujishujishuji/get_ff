@@ -21,3 +21,6 @@ CREATE TABLE IF NOT EXISTS "stock" (
         "updated"       TIMESTAMP DEFAULT (datetime(CURRENT_TIMESTAMP,'localtime'))
 );
 
+スプレッドシートの行数を超えるリスト登録しようとるすると、エラーになる
+onesizeはサイズ表がないので、他のアイテムのサイズ表を取得してしまう。
+chromedriverとchromeのバージョンがあってないと、ブラウザが開いて即閉じるエラーがでる
