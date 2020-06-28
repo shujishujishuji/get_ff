@@ -19,59 +19,89 @@
 {% raw %}
 <script type="text/x-template" id="mycomp-template">
 <div>
+
 <div class="alert alert-primary p-1">
     <h5>{{alert_msg}}</h5>
 </div>
 
-<div class="form-group">
-    <h4>【URL一括取得】</h4>
-    <label for="url">URL</label>
-    <input type="text" id="url" name="url" class="form-control" placeholder="http://xxxxx@xxxx.com" v-model="post_url">
-    <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
+<!--パネルタブ-->
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item"><a href="#home" class="nav-link active" data-toggle="tab" role="tab">URL一括取得</a></li>
+    <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">情報取得</a></li>
+    <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
+    <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
+</ul>
+
+<!--パネルコンテンツ-->
+<div class="tab-content">
+    <!--一括取得パネルコンテンツ-->
+    <div class="tab-pane fade show active" id="home" role="tabpanel">
+        <!--一括取得のグループ-->
+        <div class="form-group p-3">
+            <h4>【URL一括取得】</h4>
+            <label for="url">URL</label>
+            <input type="text" id="url" name="url" class="form-control" placeholder="http://xxxxx@xxxx.com" v-model="post_url">
+            <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
+        </div>
+    </div>
+
+    <!--情報取得パネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="second" role="tabpanel">
+        <!--情報取得のグループ-->
+        <h4>【情報取得】</h4>
+        <div class="form-row">
+            <div class="form-group col">
+                <label for="category">カテゴリ</label>
+                <select type="text" id="category" name="category" class="form-control" placeholder="" v-model="post_category">
+                    <option value="レディース">レディース</option>
+                    <option value="メンズ">メンズ</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+            <div class="form-group col">
+                <label for="deadline">購入期限</label>
+                <input type="text" id="deadline" name="deadline" class="form-control" placeholder="yyyy/mm/dd" v-model="post_deadline">
+            </div>
+            <div class="form-group col">
+                <label for="ratio">倍率</label>
+                <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％" v-model="post_ratio">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group col">
+                <label for="overship">海外送料</label>
+                <input type="text" id="overship" name="overship" class="form-control" placeholder="1234" v-model="post_overship">
+            </div>
+            <div class="form-group col">
+                <label for="domship">国内送料</label>
+                <input type="text" id="domship" name="domship" class="form-control" placeholder="6789" v-model="post_domship">
+            </div>
+        </div>
+            <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">情報取得</button>
+    </div>
+    <!--在庫管理パネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="thred" role="tabpanel">
+        <!--在庫管理のグループ-->
+        <div class="form-group">
+            <h4>【在庫削除】</h4>
+            <label for="id">在庫ID</label>
+            <input type="text" id="id" name="id" class="form-control" placeholder="1,2,3,4..." v-model="post_id">
+            <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
+        </div>
+        <br><br>
+        <h4>【在庫確認】</h4>
+        <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
+    </div>
+    <!--お掃除パネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="fours" role="tabpanel">
+        <!--お掃除のグループ-->
+        <h4>【スプレッドシート削除】</h4>
+        <button v-on:click="delSs" class="btn btn-primary" id="delete_spreadsheet">SP削除</button>
+        <br><br>
+        <h4>【商品画像フォルダ削除】</h4>
+        <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">画像削除</button>
+    </div>
 </div>
-<br><br>
-<h4>【情報取得】</h4>
-<div class="form-row">
-    <div class="form-group col">
-        <label for="category">カテゴリ</label>
-        <select type="text" id="category" name="category" class="form-control" placeholder="" v-model="post_category">
-            <option value="レディース">レディース</option>
-            <option value="メンズ">メンズ</option>
-            <option value="その他">その他</option>
-        </select>
-    </div>
-    <div class="form-group col">
-        <label for="deadline">購入期限</label>
-        <input type="text" id="deadline" name="deadline" class="form-control" placeholder="yyyy/mm/dd" v-model="post_deadline">
-    </div>
-    <div class="form-group col">
-        <label for="ratio">倍率</label>
-        <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％" v-model="post_ratio">
-    </div>
-</div>
-<div class="form-row">
-    <div class="form-group col">
-        <label for="overship">海外送料</label>
-        <input type="text" id="overship" name="overship" class="form-control" placeholder="1234" v-model="post_overship">
-    </div>
-    <div class="form-group col">
-        <label for="domship">国内送料</label>
-        <input type="text" id="domship" name="domship" class="form-control" placeholder="6789" v-model="post_domship">
-    </div>
-</div>
-    <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">情報取得</button>
-<br><br>
-<div class="form-group">
-    <h4>【在庫削除】</h4>
-    <label for="id">在庫ID</label>
-    <div class="row">
-    <input type="text" id="id" name="id" class="form-control col" placeholder="1,2,3,4..." v-model="post_id">
-    <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
-    </div>
-</div>
-    <button v-on:click="delSs" class="btn btn-primary" id="delete_spreadsheet">スプレッドシート削除</button>
-    <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
-    <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">商品画像フォルダ削除</button>
 </div>
 </script>
 {% endraw %}

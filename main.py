@@ -1,5 +1,5 @@
 """
-***************取扱説明書*************
+＊＊＊＊＊＊＊＊＊＊＊＊取扱説明書＊＊＊＊＊＊＊＊＊
 出品スケジュール
 1.商品を探してURLをSPシート(出品シート[I]列)に貼り付け
 2.自動で商品情報を取得
@@ -9,12 +9,9 @@
 6.在庫状況に変化のあったものを削除
 
 TODO:
-URLを指定して在庫ファイルから削除する関数
 マルチスレッドによる時間短縮
 在庫管理定期実行
 app化
-スプレッドシートの入力欄の一括削除関数
-スレッド化してさらに高速にする。
 """
 # importエラーのためにパスを通す
 import sys
@@ -55,10 +52,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.functions import current_timestamp
 from sqlalchemy.dialects.mysql import TIMESTAMP as Timestamp
 
-CHROME_PATH = "/usr/local/bin/chromedriver"
 KEY_FILE = 'resale-0001-75d3caf0bb7b.json'
 SHEET_NAME = '出品シート'
-ARGS = sys.argv
 
 app = Flask(__name__)
 
@@ -177,13 +172,13 @@ class GetList:
         """
             複数ページURLを取得し、スプレッドシートに記載
         """
-        ss = set_ss(KEY_FILE, SHEET_NAME).sheet1
+        ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('出品シート')
         url_lis = ss.col_values(9)
-        blank_row = len(url_lis) + 1
         page_list = self.move_page(url)
-        for i, uri in enumerate(page_list):
-            time.sleep(1)
-            ss.update_acell('I{}'.format(i + blank_row), uri)
+        page_lis = [[x] for x in page_list]
+        ss_data = [{'range': 'I{}:I{}'.format(len(url_lis) + 1, len(url_lis) + len(page_list)),
+                    'values': page_lis}]
+        ss.batch_update(ss_data)
 
     def get_tag(self, tag, attr_name, attr_val):
         """
@@ -329,8 +324,7 @@ def get_description(driver, stock_check=None):
 def index():
     return render_template(
         'index.html',
-        title='商品情報取得',
-        message='商品情報取得'
+        title='Get-ff'
     )
 
 
@@ -394,7 +388,7 @@ def get_info():
             # driverセットアップ
             driver = set_driver(url)
             # 画像取得
-            # get_src(driver.page_source, '出品', '.jpg', str(i+1))
+            get_src(driver.page_source, '出品', '.jpg', str(i+1))
             # 商品説明取得
             price, size, desc, size_guide, title, pure_price = get_description(driver)
             driver.quit()
@@ -416,6 +410,7 @@ def get_info():
             desc_list = desc.split('\n')
             # スタイルIDのインデックスを検索
             _index = [i for i, x in enumerate(desc_list) if 'ID:' in x]
+
             # 発送地の取得
             c = re.search(r"^.*のショップ", desc_list[-1]).group(0).replace('のショップ', '')
             area_lis = [str(area['地域']) for area in area_dic if c in str(area['ff_地域'])]
