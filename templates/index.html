@@ -64,7 +64,7 @@
             </div>
             <div class="form-group col">
                 <label for="ratio">倍率</label>
-                <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％" v-model="post_ratio">
+                <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％(今はスルー)" v-model="post_ratio">
             </div>
         </div>
         <div class="form-row">
@@ -89,7 +89,7 @@
         <div class="form-group">
             <h4>【在庫削除】</h4>
             <label for="id">在庫ID</label>
-            <input type="text" id="id" name="id" class="form-control" placeholder="1,2,3,4..." v-model="post_id">
+            <input type="text" id="id" name="id" class="form-control" placeholder="1,2,3,4... or 123-456" v-model="post_id">
             <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
         </div>
         <br><br>
@@ -173,10 +173,6 @@ Vue.component('mycomp', {
 
                 success: function(data) {
                     if(data != null){
-                        self.post_deadline = '';
-                        self.post_ratio = '';
-                        self.post_overship = '';
-                        self.post_domship = '';
                         self.alert_msg = '終了しましたyo~~~！！';
                     }
                 },

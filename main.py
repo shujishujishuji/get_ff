@@ -157,14 +157,14 @@ def set_ss(key_file, sheet_name):
 @app.route('/del_ss', methods=['GET'])
 def del_cells():
     ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('出品シート')
-    del_lis = [['', '', '', '', '', '', '', '', '', ''] for _ in range(199)]
-    del_z = [[''] for _ in range(199)]
-    del_a = [['', '', ''] for _ in range(199)]
-    ss_data = [{'range': 'A2:J200',
+    del_lis = [['', '', '', '', '', '', '', '', '', ''] for _ in range(499)]
+    del_z = [[''] for _ in range(499)]
+    del_a = [['', ''] for _ in range(499)]
+    ss_data = [{'range': 'A2:J500',
                 'values': del_lis},
-               {'range': 'Z2:Z200',
+               {'range': 'Z2:Z500',
                 'values': del_z},
-               {'range': 'AC2:AE200',
+               {'range': 'AD2:AE500',
                 'values': del_a}]
     ss.batch_update(ss_data)
     return 'おわた、おわたwww'
@@ -450,8 +450,8 @@ def get_info():
                         'values': [[area_str]]},
                        {'range': 'Z{}'.format(cell_row),
                         'values': [[pure_price]]},
-                       {'range': 'AC{}:AE{}'.format(cell_row, cell_row),
-                        'values': [[ratio, overship, domship]]}]
+                       {'range': 'AD{}:AE{}'.format(cell_row, cell_row),
+                        'values': [[overship, domship]]}]
             ss.batch_update(ss_data)
 
             # 在庫データベースの更新
@@ -547,15 +547,21 @@ def del_img():
 def del_stock():
     """在庫削除関数
     """
-    id_list = request.form.get('id').split(',')
+    if '-' in request.form.get('id'):
+        id_list = request.form.get('id').split('-')
+        s = int(id_list[0])
+        e = int(id_list[1]) + 1
+        id_list = list(range(s, e))
+    else:
+        id_list = request.form.get('id').split(',')
     Session = sessionmaker(bind=engine)
     ses = Session()
     query = ses.query(Stock)
     for x in id_list:
-        if x.isdecimal():
-            query.filter(
-                Stock.id == int(x)).update(
-                    {Stock.del_flg: 1})
+        if not isinstance(x, int):
+            x = int(x)
+        query.filter(Stock.id == x).update({Stock.del_flg: 1})
+
     ses.commit()
     ses.close()
     return 'True'
