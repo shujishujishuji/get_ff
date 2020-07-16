@@ -62,7 +62,7 @@ engine = create_engine('sqlite:///items.sqlite3')
 Base = declarative_base()
 
 """
-create logger
+ログのセットアップ
 """
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -612,6 +612,24 @@ def getter(url):
 def json_to_csv(json_file, csv_file):
     df = pd.DataFrame(json_file)
     df.to_csv(csv_file)
+
+
+# BUYMAのブランドリストを取得
+def scp_b():
+    b_lis = []
+    alist = [chr(i) for i in range(97,97+26)]
+    alist.append('other')
+    driver = set_driver('https://www.buyma.com/list/mens.html', True)
+    for i in alist:
+        target_ul_list = driver.find_elements_by_css_selector(
+            f'#brindex_{i} > ul > li')
+        for x in target_ul_list:
+            bland = x.text.translate(str.maketrans({'(': '/', ')': '', ' ': ''})).split('/')
+            if len(x.find_elements_by_css_selector('a')) > 0:
+                bland.append(x.find_element_by_css_selector('a').get_attribute('href'))
+            b_lis.append(bland)
+    json_to_csv(b_lis, 'buyma_mens_bland.csv')
+    driver.quit()
 
 
 if __name__ == '__main__':
