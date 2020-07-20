@@ -470,7 +470,7 @@ def get_info():
         return result
 
 
-@app.route('/get_stock', methods=['GET'])
+@app.route('/get_stock', methods=['POST'])
 @log
 def check_stock():
     """
@@ -479,6 +479,8 @@ def check_stock():
         現在情報を取得、在庫ファイルと差分があるものは
         比較ファイルに追加する。
     """
+    s = request.form.get('sid').split(':')
+    slices = slice(int(s[0]), int(s[1]))
     try:
         # データベースから在庫情報を辞書に読み込む
         Session = sessionmaker(bind=engine)
@@ -491,13 +493,31 @@ def check_stock():
             stock.append(item.to_dict())
 
         # 差分比較
-        for item in stock:
+        for item in stock[slices]:
             logger.info(item['id'])
             logger.info(item['url'])
             if item['del_flg'] == 0:
                 time.sleep(1)
                 driver = set_driver(item['url'])
-                price, size = get_description(driver, True)
+                try:
+                    price, size = get_description(driver, True)
+                except Exception as e:
+                    driver.close()
+                    val = 'Error' + str(e)
+                    Session = sessionmaker(bind=engine)
+                    ses = Session()
+                    query = ses.query(Stock)
+                    query.filter(
+                        Stock.id == item['id']).update(
+                            {Stock.stock_info: val, Stock.updated: dt.now()})
+                    ses.commit()
+                    ses.close()
+                    diff_data = {'id': item['id'],
+                                 'URL': item['url'],
+                                 'stock_info': item['stock_info'],
+                                 'diff_info': val}
+                    diff_list.append(diff_data)
+                    continue
                 driver.close()
 
                 # 差分があったらdatabase更新
@@ -518,8 +538,12 @@ def check_stock():
                                  'stock_info': item['stock_info'],
                                  'diff_info': val}
                     diff_list.append(diff_data)
-        logger.warning(diff_list)
-        json_to_csv(diff_list, 'diff.csv')
+        ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫')
+        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info']] for x in diff_list]
+        logger.info(diff_lis)
+        ss_data = [{'range': 'A{}:D{}'.format(2, len(diff_list) + 1),
+                    'values': diff_lis}]
+        ss.batch_update(ss_data)
         result = '終わったよ(笑)'
     except Exception as e:
         result = str(e)
@@ -632,6 +656,13 @@ def scp_b():
     driver.quit()
 
 
+def get_bym():
+    buyma = 'https://www.buyma.com/'
+    driver = set_driver(buyma)
+    time.sleep(5)
+    driver.close()
+
 if __name__ == '__main__':
-    app.run(debug=True, host='localhost')
+    get_bym()
+    # app.run(debug=True, host='localhost')
     # scraping('https://www.farfetch.com/jp/designers/women')

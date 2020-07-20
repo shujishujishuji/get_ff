@@ -93,8 +93,11 @@
             <button v-on:click="delStock" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">在庫削除</button>
         </div>
         <br><br>
-        <h4>【在庫確認】</h4>
-        <button v-on:click="getStock" class="btn btn-primary" id="check_stock">在庫確認</button>
+        <div class="form-group">
+            <h4>【在庫確認】</h4>
+            <label for="sid">在庫ID(スライスだから,在庫ID+1になる)</label>
+            <input type="text" id="sid" name="sid" class="form-control" placeholder="0:100" v-model="stock_id">
+            <button v-on:click="getStock" class="btn btn-primary">在庫確認</button>
     </div>
     <!--お掃除パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fours" role="tabpanel">
@@ -125,7 +128,8 @@ Vue.component('mycomp', {
             post_overship: '',
             post_domship: '',
             post_category: 'メンズ',
-            post_catchcopy: '【送料輸入税込】'
+            post_catchcopy: '【送料輸入税込】',
+            stock_id: ''
         }
     },
     methods:{
@@ -196,9 +200,25 @@ Vue.component('mycomp', {
         // check_stock
         getStock: function(){
             this.alert_msg = '在庫確認実行中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("sid", this.stock_id);
             let self = this;
-            $.get("/get_stock", function(data){
-                self.alert_msg = data
+            $.ajax({
+                type: 'POST',
+                url: '/get_stock',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.check_id = '';
+                        self.alert_msg = data;
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
             });
         },
         // delete_stock
