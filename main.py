@@ -549,16 +549,16 @@ def check_stock():
                                  'buyma_id': item['buyma_id'],
                                  'buyma_url': item['buyma_url']}
                     diff_list.append(diff_data)
-        ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫')
-        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info'], x['buyma_id'], x['buyma_url']] for x in diff_list]
-        ss_data = [{'range': 'A{}:F{}'.format(2, len(diff_list) + 1),
-                    'values': diff_lis}]
-        ss.batch_update(ss_data)
         result = '終わったよ(笑)'
     except Exception as e:
         result = str(e)
         logger.error(e)
     finally:
+        ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫')
+        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info'], x['buyma_id'], x['buyma_url']] for x in diff_list]
+        ss_data = [{'range': 'A{}:F{}'.format(2, len(diff_list) + 1),
+                    'values': diff_lis}]
+        ss.batch_update(ss_data)
         return result
 
 
@@ -742,6 +742,8 @@ def change_bym_status(url, status):
     driver.quit()
 
 
+@log
+@app.route('/stop_bym', methods=['GET'])
 def change_bym_item_status():
     ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫削除')
     url_lis = ss.col_values(6)
@@ -758,9 +760,9 @@ def change_bym_item_status():
         query.filter(Stock.id == x).update({Stock.del_flg: 1})
     ses.commit()
     ses.close()
+    return 'end of 出品停止処理'
 
 
 if __name__ == '__main__':
-    # get_bym()
     app.run(debug=True, host='localhost')
     # scraping('https://www.farfetch.com/jp/designers/women')

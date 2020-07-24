@@ -102,6 +102,9 @@
         <br><br>
         <h4>【BUYMA情報取得】BUYMAのIDとURLをDBに保存する</h4>
         <button v-on:click="getBuyma" class="btn btn-primary">BUYMA情報取得</button>
+        <br><br>
+        <h4>【BUYMA出品停止】在庫のない商品を出品停止中に変更する</h4>
+        <button v-on:click="stopBuyma" class="btn btn-primary">BUYMA出品停止</button>
     </div>
     <!--お掃除パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fours" role="tabpanel">
@@ -262,6 +265,13 @@ Vue.component('mycomp', {
             this.alert_msg = 'BUYMA情報取得中です。けっこう時間かかります。しばらくお待ちください。';
             let self = this;
             $.get("/get_bym", function(data){
+                self.alert_msg = data
+            });
+        },
+        stopBuyma: function(){
+            this.alert_msg = 'BUYMA出品停止中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/stop_bym", function(data){
                 self.alert_msg = data
             });
         },
