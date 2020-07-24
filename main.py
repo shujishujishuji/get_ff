@@ -54,6 +54,8 @@ from sqlalchemy.dialects.mysql import TIMESTAMP as Timestamp
 
 KEY_FILE = 'resale-0001-75d3caf0bb7b.json'
 SHEET_NAME = '出品シート'
+BUYMA_MAIL = 'shuji00881199@gmail.com'
+BUYMA_PASSWORD = 'shuji0819'
 
 app = Flask(__name__)
 
@@ -714,6 +716,49 @@ def get_bym():
         ses.close()
     driver.close()
     return 'owata'
+
+
+def change_bym_status(url, status):
+    """BUYMAの出品停止と出品中を切り替える
+        url: 商品編集ページURL
+        status: 出品中か出品停止中のうち、変更後のステータス
+    """
+    driver = set_driver(url)
+    login_mail = driver.find_element_by_id('txtLoginId')
+    login_mail.send_keys(BUYMA_MAIL)
+    login_pass = driver.find_element_by_id('txtLoginPass')
+    login_pass.send_keys(BUYMA_PASSWORD)
+    login_btn = driver.find_element_by_id('login_do')
+    login_btn.click()
+    class_name = 'bmm-c-switch'
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, class_name)))
+    item_txt = driver.find_element_by_class_name(class_name).text
+    if item_txt != status:
+        driver.execute_script("document.getElementsByClassName('" + class_name + "')[0].click();")
+        time.sleep(1)
+        btn = 'bmm-c-btn'
+        driver.execute_script("document.getElementsByClassName('" + btn + "')[0].click();")
+        time.sleep(5)
+    driver.quit()
+
+
+def change_bym_item_status():
+    ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫削除')
+    url_lis = ss.col_values(6)
+    id_lis = ss.col_values(1)
+    for url in url_lis:
+        change_bym_status(url, '出品停止中')
+    # DB削除
+    Session = sessionmaker(bind=engine)
+    ses = Session()
+    query = ses.query(Stock)
+    for x in id_lis:
+        if not isinstance(x, int):
+            x = int(x)
+        query.filter(Stock.id == x).update({Stock.del_flg: 1})
+    ses.commit()
+    ses.close()
+
 
 if __name__ == '__main__':
     # get_bym()
