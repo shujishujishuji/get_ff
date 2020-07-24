@@ -107,15 +107,18 @@ class Stock(Base):
     del_flg = Column(Integer, server_default=text("0"))
     created = Column(Timestamp, server_default=current_timestamp())
     updated = Column(Timestamp, server_default=current_timestamp())
+    buyma_url = Column(String(255))
 
     def to_dict(self):
         return {
             'id': int(self.id),
             'url': str(self.url),
             'stock_info': str(self.stock_info),
+            'buyma_id': str(self.buyma_id),
             'del_flg': int(self.del_flg),
             'created': str(self.created),
-            'updated': str(self.updated)
+            'updated': str(self.updated),
+            'buyma_url': str(self.buyma_url)
         }
 
 
@@ -479,6 +482,7 @@ def check_stock():
         現在情報を取得、在庫ファイルと差分があるものは
         比較ファイルに追加する。
     """
+    # スライスを取得
     s = request.form.get('sid').split(':')
     slices = slice(int(s[0]), int(s[1]))
     try:
@@ -502,6 +506,7 @@ def check_stock():
                 try:
                     price, size = get_description(driver, True)
                 except Exception as e:
+                    # 例外発生は在庫ないためなので、エラーを挿入
                     driver.close()
                     val = 'Error' + str(e)
                     Session = sessionmaker(bind=engine)
@@ -515,7 +520,9 @@ def check_stock():
                     diff_data = {'id': item['id'],
                                  'URL': item['url'],
                                  'stock_info': item['stock_info'],
-                                 'diff_info': val}
+                                 'diff_info': val,
+                                 'buyma_id': item['buyma_id'],
+                                 'buyma_url': item['buyma_url']}
                     diff_list.append(diff_data)
                     continue
                 driver.close()
@@ -536,12 +543,13 @@ def check_stock():
                     diff_data = {'id': item['id'],
                                  'URL': item['url'],
                                  'stock_info': item['stock_info'],
-                                 'diff_info': val}
+                                 'diff_info': val,
+                                 'buyma_id': item['buyma_id'],
+                                 'buyma_url': item['buyma_url']}
                     diff_list.append(diff_data)
         ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫')
-        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info']] for x in diff_list]
-        logger.info(diff_lis)
-        ss_data = [{'range': 'A{}:D{}'.format(2, len(diff_list) + 1),
+        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info'], x['buyma_id'], x['buyma_url']] for x in diff_list]
+        ss_data = [{'range': 'A{}:F{}'.format(2, len(diff_list) + 1),
                     'values': diff_lis}]
         ss.batch_update(ss_data)
         result = '終わったよ(笑)'
@@ -567,6 +575,7 @@ def del_img():
         return result
 
 
+@log
 @app.route('/del_stock', methods=['POST'])
 def del_stock():
     """在庫削除関数
@@ -656,13 +665,57 @@ def scp_b():
     driver.quit()
 
 
+@app.route('/get_bym', methods=['GET'])
 def get_bym():
-    buyma = 'https://www.buyma.com/'
+    # データベースから在庫情報を辞書に読み込む
+    Session = sessionmaker(bind=engine)
+    ses = Session()
+    res = ses.query(Stock).all()
+    ses.close()
+    stock = [item.to_dict() for item in res]
+    stock_list = [item for item in stock if item['del_flg'] == 0 and item['buyma_id'] == 'None']
+
+    buyma = 'https://teraplot.net/app/buyma/'
+    # バイヤーマネージャーログイン
     driver = set_driver(buyma)
-    time.sleep(5)
+    inp_mail = driver.find_element_by_name('mail')
+    inp_mail.send_keys('shuji00881199@gmail.com')
+    inp_pass = driver.find_element_by_name('password')
+    inp_pass.send_keys('bHbaDYhO')
+    login_btn = driver.find_element_by_name('action')
+    login_btn.click()
+
+
+    # 最初の商品検索
+    for stock in stock_list:
+        logger.info(stock['id'])
+        inp_url = driver.find_element_by_name('buyingUrl')
+        inp_url.send_keys(stock['url'])
+        if stock == stock_list[0]:
+            url_btn = driver.find_element_by_css_selector('#content > form:nth-child(5) > input[type=submit]:nth-child(2)')
+        else:
+            url_btn = driver.find_element_by_css_selector('#header > form > input[type=submit]:nth-child(2)')
+        url_btn.click()
+
+        # DBセクション作成
+        Session = sessionmaker(bind=engine)
+        ses = Session()
+        query = ses.query(Stock)
+
+        # buyma_id,urlの取得
+        if len(driver.find_elements_by_css_selector('#header > p:nth-child(4) > a:nth-child(1)')) > 0:
+            b_id = driver.find_element_by_css_selector('#header > p:nth-child(4) > a:nth-child(1)').text
+            b_url = driver.find_element_by_css_selector('#header > p:nth-child(4) > a:nth-child(2)').get_attribute('href')
+            query.filter(Stock.id == stock['id']).update(
+                {Stock.buyma_id: b_id, Stock.buyma_url: b_url, Stock.updated: dt.now()})
+        else:
+            query.filter(Stock.id == stock['id']).update({Stock.del_flg: 1})
+        ses.commit()
+        ses.close()
     driver.close()
+    return 'owata'
 
 if __name__ == '__main__':
-    get_bym()
-    # app.run(debug=True, host='localhost')
+    # get_bym()
+    app.run(debug=True, host='localhost')
     # scraping('https://www.farfetch.com/jp/designers/women')

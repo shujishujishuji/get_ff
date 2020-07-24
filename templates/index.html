@@ -98,6 +98,10 @@
             <label for="sid">在庫ID(スライスだから,在庫ID+1になる)</label>
             <input type="text" id="sid" name="sid" class="form-control" placeholder="0:100" v-model="stock_id">
             <button v-on:click="getStock" class="btn btn-primary">在庫確認</button>
+        </div>
+        <br><br>
+        <h4>【BUYMA情報取得】BUYMAのIDとURLをDBに保存する</h4>
+        <button v-on:click="getBuyma" class="btn btn-primary">BUYMA情報取得</button>
     </div>
     <!--お掃除パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fours" role="tabpanel">
@@ -250,6 +254,14 @@ Vue.component('mycomp', {
             this.alert_msg = 'スプレッドシート削除中です。けっこう時間かかります。しばらくお待ちください。';
             let self = this;
             $.get("/del_ss", function(data){
+                self.alert_msg = data
+            });
+        },
+        // get_buyma
+        getBuyma: function(){
+            this.alert_msg = 'BUYMA情報取得中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/get_bym", function(data){
                 self.alert_msg = data
             });
         },
