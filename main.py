@@ -7,11 +7,6 @@
 4.自動で出品
 5.自動で一日一回在庫管理
 6.在庫状況に変化のあったものを削除
-
-TODO:
-マルチスレッドによる時間短縮
-在庫管理定期実行
-app化
 """
 # importエラーのためにパスを通す
 import sys
@@ -125,7 +120,6 @@ class Stock(Base):
 
 
 # seleniumのdriverのセットアップ
-@log
 def set_driver(url, headless=False):
     options = webdriver.ChromeOptions()
     if headless:
@@ -718,18 +712,21 @@ def get_bym():
     return 'owata'
 
 
-def change_bym_status(url, status):
-    """BUYMAの出品停止と出品中を切り替える
-        url: 商品編集ページURL
-        status: 出品中か出品停止中のうち、変更後のステータス
-    """
-    driver = set_driver(url)
+def login_bym(driver):
     login_mail = driver.find_element_by_id('txtLoginId')
     login_mail.send_keys(BUYMA_MAIL)
     login_pass = driver.find_element_by_id('txtLoginPass')
     login_pass.send_keys(BUYMA_PASSWORD)
     login_btn = driver.find_element_by_id('login_do')
     login_btn.click()
+
+
+def change_bym_status(driver, url, status):
+    """BUYMAの出品停止と出品中を切り替える
+        url: 商品編集ページURL
+        status: 出品中か出品停止中のうち、変更後のステータス
+    """
+    driver.get(url)
     class_name = 'bmm-c-switch'
     WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, class_name)))
     item_txt = driver.find_element_by_class_name(class_name).text
@@ -739,17 +736,26 @@ def change_bym_status(url, status):
         btn = 'bmm-c-btn'
         driver.execute_script("document.getElementsByClassName('" + btn + "')[0].click();")
         time.sleep(5)
-    driver.quit()
 
 
-@log
 @app.route('/stop_bym', methods=['GET'])
 def change_bym_item_status():
+    # 削除URLの取得
     ss = set_ss(KEY_FILE, SHEET_NAME).worksheet('在庫削除')
     url_lis = ss.col_values(6)
     id_lis = ss.col_values(1)
+
+    # ドライバーの設定
+    driver = set_driver('https://www.buyma.com/login/')
+    
+    # ログイン
+    login_bym(driver)
+
+    # 出品ステータスの変更
     for url in url_lis:
-        change_bym_status(url, '出品停止中')
+        change_bym_status(driver, url, '出品停止中')
+    driver.quit()
+
     # DB削除
     Session = sessionmaker(bind=engine)
     ses = Session()
@@ -763,6 +769,38 @@ def change_bym_item_status():
     return 'end of 出品停止処理'
 
 
+# リサーチ関係
+def research_bym():
+    driver = set_driver('https://buyer-life.com/')
+    login_btn = driver.find_element_by_id('header_login')
+    login_btn.click()
+    login_mail = driver.find_element_by_name('mail')
+    login_mail.send_keys(BUYMA_MAIL)
+    login_pass = driver.find_element_by_name('pw')
+    login_pass.send_keys(BUYMA_PASSWORD)
+    login_btn = driver.find_element_by_css_selector('#login_form > form > div.center > input')
+    login_btn.click()
+    time.sleep(1)
+    driver.get("https://buyer-life.com/choice/brand/")
+    time.sleep(5)
+    b_lis = driver.find_element_by_id('brand_list')
+    brand_list = b_lis.find_elements_by_class_name('list_item')
+    brands = [x.text for x in brand_list]
+    json_to_csv(brands, 'bym_life_bland.csv')
+    driver.quit()
+
+
+def open_rank():
+    df = pd.read_csv('bym_life_bland.csv')
+    df.columns = ['id', 'name']
+    df_s = pd.concat([df, df['name'].str.split('\n', expand=True)], axis=1).drop('name', axis=1)
+    df_s.columns = ['id', 'name', 'ladies', 'mens', 'kids', 'a', 'b', 'c', 'd']
+    # df_s2 = pd.concat([df_s, df_s['name'].str.split('/', expand=True)], axis=1).drop('name', axis=1)
+    # df_s2.columns = ['id', 'name', 'ladies', 'mens', 'kids', 'a', 'b', 'c', 'd', 'bland_name']
+    df_s.to_csv('bland.csv')
+
+
 if __name__ == '__main__':
-    app.run(debug=True, host='localhost')
+    open_rank()
+    # app.run(debug=True, host='localhost')
     # scraping('https://www.farfetch.com/jp/designers/women')
