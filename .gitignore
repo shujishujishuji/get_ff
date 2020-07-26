@@ -4,3 +4,4 @@
 *.log
 *.csv
 logfile*
+__pycache__
