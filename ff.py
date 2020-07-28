@@ -29,7 +29,7 @@ import pandas as pd
 import time
 import os
 import re
-import urllib.request
+import urllib
 from pprint import pprint
 
 from flask import request, Blueprint
@@ -41,9 +41,11 @@ from logger import logger, log
 from driver_setup import set_driver
 from set_spsheet import set_ss
 from db import Stock, engine
+from picture_cut import ImageProcessing
 
 ffapp = Blueprint('ffapp', __name__)
 
+ip = ImageProcessing()
 
 class GetList:
     """
@@ -111,21 +113,36 @@ def get_pagesource(url):
 
 
 @log
-def get_src(source, tag_name, img_suffix, folder_name):
+def get_src(driver, tag_name, img_suffix, folder_name):
     """
         画像を取得してディレクトリに保存
         img_suffix = .jpg
     """
-    soup = bs(source, 'html.parser')
+    # サムネイルに使用されてる画像のURLを取得
+    img_div = driver.find_element_by_class_name('_42f8cf')
+    img_src = img_div.find_elements_by_tag_name('source')
+    t_img = img_src[0].get_attribute('srcset')
+    t_url = re.findall(r'(.*)_', t_img)[0]
 
+    # ページソースをテキスト取得
+    soup = bs(driver.page_source, 'html.parser')
     # ソース文字列から600.jpgを含むリストを作成し、リスト化
     soup_list = [x.strip() for x in str(soup).split(',') if '600.jpg' in x]
     # url以外の文字列を削除
-    url_list = [re.findall(r'https.*jpg', x)[0] for x in soup_list if len(x) < 100]
+    url_lis = list(set([re.findall(r'https.*jpg', x)[0] for x in soup_list if len(x) < 100]))
+
+    # サムネイルに使用されているURLをリストの先頭に移動
+    t_index = [i for i, x in enumerate(url_lis) if t_url in x]
+    if t_index != [0]:
+        url_lis[0], url_lis[t_index[0]] = url_lis[t_index[0]], url_lis[0]
+
+    # フォルダがなければ作成
     img_path = os.path.join(tag_name, folder_name)
     if not os.path.exists(img_path):
         os.makedirs(img_path)
-    for i, s in enumerate(list(set(url_list))):
+
+    # 画像ファイルのダウンロード
+    for i, s in enumerate(url_lis):
         urllib.request.urlretrieve(
             s, os.path.join(img_path, '{}{}'.format(i, img_suffix)))
 
@@ -257,6 +274,8 @@ def get_info():
         stock_url = []
         for x in stock:
             stock_url.append(x['url'])
+
+        driver = set_driver('https://www.google.com/')
         # URL毎の処理
         price = size = desc = size_guide = title = pure_price = 'a'
         for i, url in enumerate(url_lis):
@@ -266,15 +285,20 @@ def get_info():
                 continue
 
             # driverセットアップ
-            driver = set_driver(url)
+            driver.get(url)
             # 画像取得
-            get_src(driver.page_source, '出品', '.jpg', str(i+1))
+            get_src(driver, '出品', '.jpg', str(i+1))
             # 商品説明取得
             price, size, desc, size_guide, title, pure_price = get_description(driver)
-            driver.quit()
+
+            # 画像編集
+            if title != 'a':
+                img_path = os.path.join('出品', str(i+1), '0.jpg')
+                ip.add_txt(img_path, title)
 
             # 初期化
             bland_str = category_str = area_str = ''
+
             # ブランド名の取得
             t = re.search(r"^.*", title).group(0)
             bland_lis = [str(bland['ブランド']) for bland in bland_dic if str(t).lower() in str(bland['ff_ブランド']).lower()]
@@ -333,6 +357,7 @@ def get_info():
         result = str(e)
         logger.error(e)
     finally:
+        driver.quit()
         return result
 
 
@@ -462,4 +487,3 @@ def getter(url):
             num = re.sub("\\D", "", x.text)
     driver.quit()
     return y, num
-

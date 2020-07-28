@@ -1,8 +1,17 @@
+import sys
+from pathlib import Path
+
+# ライブラリのパス
+sys.path.append('/usr/local/lib/python3.7/site-packages')
+
+
 from datetime import datetime as dt
 import pandas as pd
 import time
+import re
+from pprint import pprint
 
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from sqlalchemy.orm import sessionmaker
 
 from selenium.webdriver.common.keys import Keys
@@ -15,12 +24,14 @@ from config import config_ini as cf
 from logger import logger, log
 from driver_setup import set_driver
 from set_spsheet import set_ss
-from db import Stock, engine
+from db import Stock, engine, Sales
 
 bymapp = Blueprint('bymapp', __name__)
 
 
 def login_bym(driver):
+    """BUYMAへのログイン
+    """
     login_mail = driver.find_element_by_id('txtLoginId')
     login_mail.send_keys(cf.get('BUYMA', 'BUYMA_MAIL'))
     login_pass = driver.find_element_by_id('txtLoginPass')
@@ -50,6 +61,8 @@ def scp_b():
 
 @bymapp.route('/get_bym', methods=['GET'])
 def get_bym():
+    """BUYMAのIDをbuyermanagerから取得して、DBに追加する。
+    """
     # データベースから在庫情報を辞書に読み込む
     Session = sessionmaker(bind=engine)
     ses = Session()
@@ -99,7 +112,6 @@ def get_bym():
     return 'owata'
 
 
-
 def change_bym_status(driver, url, status):
     """BUYMAの出品停止と出品中を切り替える
         url: 商品編集ページURL
@@ -117,8 +129,18 @@ def change_bym_status(driver, url, status):
         time.sleep(5)
 
 
+def change_man(driver, man):
+    switch_class_name = 'my-page-menu__switch'
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, switch_class_name)))
+    switch = driver.find_element_by_class_name(switch_class_name)
+    if man in switch.text:
+        switch.click()
+
+
 @bymapp.route('/stop_bym', methods=['GET'])
 def change_bym_item_status():
+    """BUYMAの出品ステータスを出品停止に変更する。
+    """
     # 削除URLの取得
     ss = set_ss(cf.get('SS_SHEET', 'KEY_FILE'), cf.get('SS_SHEET', 'SHEET_NAME')).worksheet('在庫削除')
     url_lis = ss.col_values(6)
@@ -129,6 +151,9 @@ def change_bym_item_status():
 
     # ログイン
     login_bym(driver)
+
+    # 購入者ページに入ったら切り替える
+    change_man(driver, '出品者')
 
     # 出品ステータスの変更
     for url in url_lis:
@@ -146,3 +171,61 @@ def change_bym_item_status():
     ses.commit()
     ses.close()
     return 'end of 出品停止処理'
+
+
+@bymapp.route('/data_bym', methods=['GET'])
+def get_sale():
+    """データをDBに追加する定期的に実行すること
+    """
+    driver = set_driver('https://www.buyma.com/login/')
+    login_bym(driver)
+    css = '#wrapper > div.bmm-l-wrap.my-page > div.bmm-l-main.my-page__main > div > div.my-page-status > table > tbody > tr > td'
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, css)))
+    time.sleep(2)
+    data = driver.find_elements_by_css_selector(css)
+    data_lis = [re.sub("\\D", "", x.text) for x in data]
+    driver.quit()
+    data_lis = list(map(int, data_lis))
+
+    # DB保存
+    sales_obj = Sales(sales=data_lis[0],
+                      close=data_lis[1],
+                      follower=data_lis[2],
+                      like=data_lis[3],
+                      access=data_lis[4])
+    Session = sessionmaker(bind=engine)
+    ses = Session()
+    ses.add(sales_obj)
+    ses.commit()
+    ses.close()
+    return '取れたデーた'
+
+
+def get_all():
+    """全データを取得する
+    """
+    Session = sessionmaker(bind=engine)
+    ses = Session()
+    res = ses.query(Sales).all()
+    ses.close()
+    resp = [x.to_dic() for x in res]
+    return resp
+
+
+@bymapp.route('/all_bym_data', methods=['GET'])
+def all_bym_data():
+    """全データを返す
+    """
+    res = get_all()
+    return jsonify(res)
+
+
+def syopper_data(url):
+    driver = set_driver(url, True)
+    css = '#profile_wrap > dl > dd:nth-child(2)'
+    profile = driver.find_element_by_css_selector(css).text
+    print(profile)
+
+
+if __name__ == '__main__':
+    syopper_data('https://www.buyma.com/buyer/2488909.html')

@@ -36,3 +36,26 @@ class Stock(Base):
             'updated': str(self.updated),
             'buyma_url': str(self.buyma_url)
         }
+
+
+class Sales(Base):
+    __tablename__ = 'sales'
+
+    id = Column(Integer, primary_key=True)
+    sales = Column(Integer)
+    close = Column(Integer)
+    follower = Column(Integer)
+    like = Column(Integer)
+    access = Column(Integer)
+    created = Column(Timestamp, server_default=current_timestamp())
+
+    def to_dic(self):
+        return {
+            'id': int(self.id),
+            'sales': str(self.sales),
+            'close': str(self.close),
+            'follower': str(self.follower),
+            'like': int(self.like),
+            'access': str(self.access),
+            'created': str(self.created)
+        }

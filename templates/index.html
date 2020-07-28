@@ -1,6 +1,6 @@
 {% extends 'layout.html' %}
 {% block title %}
-    Index
+    get_farfetch
 {% endblock %}
 
 {% block headline %}
@@ -30,6 +30,7 @@
     <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">情報取得</a></li>
     <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
+    <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
 </ul>
 
 <!--パネルコンテンツ-->
@@ -105,6 +106,9 @@
         <br><br>
         <h4>【BUYMA出品停止】在庫のない商品を出品停止中に変更する</h4>
         <button v-on:click="stopBuyma" class="btn btn-primary">BUYMA出品停止</button>
+        <br><br>
+        <h4>【BUYMAデータ取得】BUYMAの売上データをDBに保存する。一日一回実行する</h4>
+        <button v-on:click="dataBuyma" class="btn btn-primary">BUYMAデータ取得</button>
     </div>
     <!--お掃除パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fours" role="tabpanel">
@@ -115,7 +119,34 @@
         <h4>【商品画像フォルダ削除】</h4>
         <button v-on:click="delImg" class="btn btn-primary" id="delete_img_dir">画像削除</button>
     </div>
+    <!--BUYMAパネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="fifs" role="tabpanel">
+        <!--BUYMAのグループ-->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>売上順位</th>
+                    <th>成約順位</th>
+                    <th>フォロワー数</th>
+                    <th>アクセス数</th>
+                    <th>お気に入り数</th>
+                    <th>日付</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in bym_data">
+                    <th>{{item.sales}}</th>
+                    <th>{{item.close}}</th>
+                    <th>{{item.follower}}</th>
+                    <th>{{item.access}}</th>
+                    <th>{{item.like}}</th>
+                    <th>{{item.created}}</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
+
 </div>
 </script>
 {% endraw %}
@@ -136,7 +167,8 @@ Vue.component('mycomp', {
             post_domship: '',
             post_category: 'メンズ',
             post_catchcopy: '【送料輸入税込】',
-            stock_id: ''
+            stock_id: '',
+            bym_data: ['','','','','','']
         }
     },
     methods:{
@@ -275,7 +307,23 @@ Vue.component('mycomp', {
                 self.alert_msg = data
             });
         },
+        dataBuyma: function(){
+            this.alert_msg = 'BUYMAのデータ保存中です。けっこう時間かかります。しばらくお待ちください。';
+            let self = this;
+            $.get("/data_bym", function(data){
+                self.alert_msg = data
+            });
+        },
+        getBuymaData: function(){
+            let self = this;
+            $.get("/all_bym_data", function(data){
+                self.bym_data = data
+            });
+        },
     },
+    created: function(){
+        this.getBuymaData();
+    }
 });
 
 
