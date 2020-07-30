@@ -5,6 +5,7 @@ from ff import ffapp
 from stocks import stockapp
 from bym import bymapp
 from main import mainapp
+from aso import asoapp
 
 
 def create_app():
@@ -14,5 +15,6 @@ def create_app():
     app.register_blueprint(ffapp)
     app.register_blueprint(stockapp)
     app.register_blueprint(bymapp)
+    app.register_blueprint(asoapp)
 
     return app

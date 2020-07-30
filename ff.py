@@ -1,13 +1,3 @@
-"""
-＊＊＊＊＊＊＊＊＊＊＊＊取扱説明書＊＊＊＊＊＊＊＊＊
-出品スケジュール
-1.商品を探してURLをSPシート(出品シート[I]列)に貼り付け
-2.自動で商品情報を取得
-3.SPシートの編集
-4.自動で出品
-5.自動で一日一回在庫管理
-6.在庫状況に変化のあったものを削除
-"""
 import sys
 from pathlib import Path
 
@@ -46,6 +36,7 @@ from picture_cut import ImageProcessing
 ffapp = Blueprint('ffapp', __name__)
 
 ip = ImageProcessing()
+
 
 class GetList:
     """
@@ -208,18 +199,21 @@ def get_description(driver, stock_check=None):
         desc = '\n\n'.join(text_list)
 
         # サイズガイド取得
-        size_guide = 'エラー or サイズガイドなし'
         size_button_xpath = '//*[@id="slice-pdp"]/div/div[1]/div[1]/div[3]/div/div[3]/div[2]/div/button'
         if len(driver.find_elements_by_xpath(size_button_xpath)):
             size_guide_button = driver.find_element_by_xpath(size_button_xpath)
             size_guide_button.click()
-            WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located(
-                    (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
+            # WebDriverWait(driver, 10).until(
+            #     EC.visibility_of_element_located(
+            #         (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
             size_guide = driver.find_elements_by_css_selector(
                 '#panelInner-0 > div > div > table')
             if len(size_guide) > 0:
                 size_guide = size_guide[0].text
+            else:
+                size_guide = 'サイズガイドエラー'
+        else:
+            size_guide = 'サイズガイドなし'
         return price, size, desc, size_guide, title, pure_price
     return price, size
 
@@ -291,16 +285,18 @@ def get_info():
             # 商品説明取得
             price, size, desc, size_guide, title, pure_price = get_description(driver)
 
+            # ブランドの取得
+            t = re.search(r"^.*", title).group(0)
+
             # 画像編集
             if title != 'a':
                 img_path = os.path.join('出品', str(i+1), '0.jpg')
-                ip.add_txt(img_path, title)
+                ip.add_txt(img_path, t)
 
             # 初期化
             bland_str = category_str = area_str = ''
 
             # ブランド名の取得
-            t = re.search(r"^.*", title).group(0)
             bland_lis = [str(bland['ブランド']) for bland in bland_dic if str(t).lower() in str(bland['ff_ブランド']).lower()]
             if len(bland_lis) > 0:
                 bland_str = bland_lis[0]
@@ -358,93 +354,6 @@ def get_info():
         logger.error(e)
     finally:
         driver.quit()
-        return result
-
-
-@ffapp.route('/get_stock', methods=['POST'])
-@log
-def check_stock():
-    """
-        在庫管理実行関数
-        比較ファイルと在庫ファイルを読み込み、
-        現在情報を取得、在庫ファイルと差分があるものは
-        比較ファイルに追加する。
-    """
-    # スライスを取得
-    s = request.form.get('sid').split(':')
-    slices = slice(int(s[0]), int(s[1]))
-    try:
-        # データベースから在庫情報を辞書に読み込む
-        Session = sessionmaker(bind=engine)
-        ses = Session()
-        res = ses.query(Stock).all()
-        ses.close()
-        stock = []
-        diff_list = []
-        for item in res:
-            stock.append(item.to_dict())
-
-        # 差分比較
-        for item in stock[slices]:
-            logger.info(item['id'])
-            logger.info(item['url'])
-            if item['del_flg'] == 0:
-                time.sleep(1)
-                driver = set_driver(item['url'])
-                try:
-                    price, size = get_description(driver, True)
-                except Exception as e:
-                    # 例外発生は在庫ないためなので、エラーを挿入
-                    driver.close()
-                    val = 'Error' + str(e)
-                    Session = sessionmaker(bind=engine)
-                    ses = Session()
-                    query = ses.query(Stock)
-                    query.filter(
-                        Stock.id == item['id']).update(
-                            {Stock.stock_info: val, Stock.updated: dt.now()})
-                    ses.commit()
-                    ses.close()
-                    diff_data = {'id': item['id'],
-                                 'URL': item['url'],
-                                 'stock_info': item['stock_info'],
-                                 'diff_info': val,
-                                 'buyma_id': item['buyma_id'],
-                                 'buyma_url': item['buyma_url']}
-                    diff_list.append(diff_data)
-                    continue
-                driver.close()
-
-                # 差分があったらdatabase更新
-                val = price + size
-                if item['stock_info'] != val:
-                    Session = sessionmaker(bind=engine)
-                    ses = Session()
-                    query = ses.query(Stock)
-                    query.filter(
-                        Stock.id == item['id']).update(
-                            {Stock.stock_info: val, Stock.updated: dt.now()})
-                    ses.commit()
-                    ses.close()
-
-                    # 在庫情報と更新情報をリストに追加する
-                    diff_data = {'id': item['id'],
-                                 'URL': item['url'],
-                                 'stock_info': item['stock_info'],
-                                 'diff_info': val,
-                                 'buyma_id': item['buyma_id'],
-                                 'buyma_url': item['buyma_url']}
-                    diff_list.append(diff_data)
-        result = '終わったよ(笑)'
-    except Exception as e:
-        result = str(e)
-        logger.error(e)
-    finally:
-        ss = set_ss(cf.get('SS_SHEET', 'KEY_FILE'), cf.get('SS_SHEET', 'SHEET_NAME')).worksheet('在庫')
-        diff_lis = [[x['id'], x['URL'], x['stock_info'], x['diff_info'], x['buyma_id'], x['buyma_url']] for x in diff_list]
-        ss_data = [{'range': 'A{}:F{}'.format(2, len(diff_list) + 1),
-                    'values': diff_lis}]
-        ss.batch_update(ss_data)
         return result
 
 

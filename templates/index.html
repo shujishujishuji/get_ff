@@ -1,6 +1,6 @@
 {% extends 'layout.html' %}
 {% block title %}
-    get_farfetch
+    buyma_helper
 {% endblock %}
 
 {% block headline %}
@@ -20,14 +20,14 @@
 <script type="text/x-template" id="mycomp-template">
 <div>
 
-<div class="alert alert-primary p-1">
+<div class="alert alert-info p-1">
     <h5>{{alert_msg}}</h5>
 </div>
 
 <!--パネルタブ-->
 <ul class="nav nav-tabs" role="tablist">
-    <li class="nav-item"><a href="#home" class="nav-link active" data-toggle="tab" role="tab">URL一括取得</a></li>
-    <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">情報取得</a></li>
+    <li class="nav-item"><a href="#home" class="nav-link active" data-toggle="tab" role="tab">商品情報取得</a></li>
+    <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">ポスト</a></li>
     <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
     <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
@@ -35,21 +35,25 @@
 
 <!--パネルコンテンツ-->
 <div class="tab-content">
-    <!--一括取得パネルコンテンツ-->
+    <!--farfetchパネルコンテンツ-->
     <div class="tab-pane fade show active" id="home" role="tabpanel">
+        <div class="form-group col">
+            <h4>【対象サイト】</h4>
+            <label for="site">サイト名</label>
+            <select type="text" id="site" name="site" class="form-control" placeholder="" v-model="post_site">
+                <option value="farfetch">farfetch</option>
+                <option value="ASOS">ASOS</option>
+            </select>
+        </div>
         <!--一括取得のグループ-->
         <div class="form-group p-3">
-            <h4>【URL一括取得】</h4>
+            <h4>【URLリスト取得】</h4>
             <label for="url">URL</label>
             <input type="text" id="url" name="url" class="form-control" placeholder="http://xxxxx@xxxx.com" v-model="post_url">
-            <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">一括取得</button>
+            <button v-on:click="postUrl" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">URLリスト取得</button>
         </div>
-    </div>
-
-    <!--情報取得パネルコンテンツ-->
-    <div class="tab-pane fade p-3" id="second" role="tabpanel">
         <!--情報取得のグループ-->
-        <h4>【情報取得】</h4>
+        <h4>【商品情報取得】</h4>
         <div class="form-row">
             <div class="form-group col">
                 <label for="category">カテゴリ</label>
@@ -78,12 +82,18 @@
                 <input type="text" id="overship" name="overship" class="form-control" placeholder="1234" v-model="post_overship">
             </div>
             <div class="form-group col">
-                <label for="domship">国内送料</label>
-                <input type="text" id="domship" name="domship" class="form-control" placeholder="6789" v-model="post_domship">
+                <label for="exchange">為替</label>
+                <input type="text" id="exchange" name="exchange" class="form-control" placeholder="1" v-model="post_exchange">
             </div>
         </div>
-            <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">情報取得</button>
+            <button v-on:click="getDescription" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">商品情報取得</button>
     </div>
+
+    <!--パネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="second" role="tabpanel">
+
+    </div>
+
     <!--在庫管理パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="thred" role="tabpanel">
         <!--在庫管理のグループ-->
@@ -106,10 +116,8 @@
         <br><br>
         <h4>【BUYMA出品停止】在庫のない商品を出品停止中に変更する</h4>
         <button v-on:click="stopBuyma" class="btn btn-primary">BUYMA出品停止</button>
-        <br><br>
-        <h4>【BUYMAデータ取得】BUYMAの売上データをDBに保存する。一日一回実行する</h4>
-        <button v-on:click="dataBuyma" class="btn btn-primary">BUYMAデータ取得</button>
     </div>
+
     <!--お掃除パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fours" role="tabpanel">
         <!--お掃除のグループ-->
@@ -122,6 +130,9 @@
     <!--BUYMAパネルコンテンツ-->
     <div class="tab-pane fade p-3" id="fifs" role="tabpanel">
         <!--BUYMAのグループ-->
+        <br><br>
+        <h4>【BUYMAデータ取得】BUYMAの売上データをDBに保存する。一日一回実行する</h4>
+        <button v-on:click="dataBuyma" class="btn btn-primary">BUYMAデータ取得</button>
         <table class="table">
             <thead>
                 <tr>
@@ -159,16 +170,17 @@ Vue.component('mycomp', {
     data: function() {
         return {
             post_url: '',
-            alert_msg: 'welcome to this new world !!',
+            alert_msg: '対象サイトの入力を忘れないで！！',
             post_id: '',
             post_deadline: '',
             post_ratio: '',
             post_overship: '',
-            post_domship: '',
+            post_exchange: '1',
             post_category: 'メンズ',
             post_catchcopy: '【送料輸入税込】',
             stock_id: '',
-            bym_data: ['','','','','','']
+            bym_data: ['','','','','',''],
+            post_site: ''
         }
     },
     methods:{
@@ -177,10 +189,15 @@ Vue.component('mycomp', {
             this.alert_msg = '一括取得実行中です。けっこう時間かかります。しばらくお待ちください。';
             let formData = new FormData();
             formData.append("url", this.post_url);
+            if (this.post_site == 'farfetch'){
+                post_url = '/post'
+            }else if (this.post_site == 'ASOS'){
+                post_url = '/aso_post'
+            };
             let self = this;
             $.ajax({
                 type: 'POST',
-                url: '/post',
+                url: post_url,
                 data: formData,
                 processData: false,
                 contentType: false,
@@ -203,20 +220,25 @@ Vue.component('mycomp', {
             formData.append("deadline", this.post_deadline);
             formData.append("ratio", this.post_ratio);
             formData.append("overship", this.post_overship);
-            formData.append("domship", this.post_domship);
+            formData.append("exchange", this.post_exchange);
             formData.append("category", this.post_category);
             formData.append("catchcopy", this.post_catchcopy);
+            if (this.post_site == 'farfetch'){
+                post_url = '/post_desc'
+            }else if (this.post_site == 'ASOS'){
+                post_url = '/aso_post_desc'
+            };
             let self = this;
             $.ajax({
                 type: 'POST',
-                url: '/post_desc',
+                url: post_url,
                 data: formData,
                 processData: false,
                 contentType: false,
 
                 success: function(data) {
                     if(data != null){
-                        self.alert_msg = '終了しましたyo~~~！！';
+                        self.alert_msg = '終了しました.';
                     }
                 },
                 error: function(request, status, err) {
@@ -230,7 +252,7 @@ Vue.component('mycomp', {
             let self = this;
             $.get("/del_img", function(data){
                 if (data == 'True') {
-                    self.alert_msg = '消えたよ笑';
+                    self.alert_msg = '消えた';
                 } else {
                     self.alert_msg = data;
                 }

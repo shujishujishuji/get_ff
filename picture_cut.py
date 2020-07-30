@@ -72,9 +72,9 @@ class ImageProcessing():
 
         # テキストの追加
         draw = ImageDraw.Draw(result)
-        font = ImageFont.truetype('~/Library/Fonts/Oranienbaum.ttf', 68)
+        font = ImageFont.truetype('~/Library/Fonts/Oranienbaum.ttf', 48)
         w, h = draw.textsize(txt, font=font)
-        draw.text(((new_w - w) / 2, (height + top)), text=txt, font=font, fill=(255, 255, 255))
+        draw.text(((new_w - w) / 2, height + top + ((bottom - h) / 2)), text=txt, font=font, fill=(255, 255, 255))
         result.save(img_path)
 
 

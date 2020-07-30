@@ -9,5 +9,5 @@ mainapp = Blueprint('mainapp', __name__)
 def index():
     return render_template(
         'index.html',
-        title='Get-ff'
+        title='buyma_helper'
     )
