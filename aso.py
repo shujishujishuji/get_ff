@@ -124,6 +124,11 @@ def aso_get_description(driver, stock_check=None):
     if len(driver.find_elements_by_id('mixmatch-size-select-0')) > 0:
         return price, pure_price, color, size, title, desc
 
+    time.sleep(1)
+    if len(driver.find_elements_by_class_name('product-out-of-stock-label')) > 0:
+        if 'out' in driver.find_element_by_class_name('product-out-of-stock-label').text.lower():
+            return price, pure_price, color, size, title, desc
+
     # 価格文字列を数字だけ抽出
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, 'product-price')))
