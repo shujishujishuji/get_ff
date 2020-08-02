@@ -264,7 +264,7 @@ def aso_get_info():
             # ブランドの取得
             item = desc.split('\n')[1].split(' by ')
             brand = item[1].strip()
-            cate = item[0].strip()
+            cate = title
 
             # 画像編集
             if title != 'a':

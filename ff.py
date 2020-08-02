@@ -146,26 +146,29 @@ def get_description(driver, stock_check=None):
         価格、サイズ、商品説明、サイズガイドの順に取得
         stock_check=Trueの場合は、価格、サイズのみ取得
     """
+    # タイトルdivの取得
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CLASS_NAME, '_c40757')))
+    div_el = driver.find_element_by_class_name('_c40757')
 
     # 価格文字列を数字だけ抽出 headlessじゃないとダメ
-    WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CLASS_NAME, '_81fc25')))
-    price_el = driver.find_element_by_class_name('_81fc25')
+    price_el = div_el.find_element_by_class_name('_81fc25')
     price = price_el.text
     p_price = price_el.find_element_by_css_selector('div > span').text
     pure_price = re.sub("\\D", "", p_price)
 
     # サイズと価格と在庫を取得
-    if len(driver.find_elements_by_id('dropdown')):
-        select_id = driver.find_element_by_id('dropdown')
+    if len(div_el.find_elements_by_class_name('_05b1cb')) > 0:
+        size = 'one size'
+    elif len(div_el.find_elements_by_id('sizesDropdown')) > 0:
+        select_id = div_el.find_element_by_id('sizesDropdown').find_element_by_id('dropdown')
+        print(select_id)
         select = Select(select_id)
         sizes = select.options
-        size_list = []
-        for i, _ in enumerate(sizes):
-            size_list.append(sizes[i].text)
+        size_list = [sizes[i].text for i, _ in enumerate(sizes)]
         size = '\n'.join(size_list[1:])
     else:
-        size = 'one size'
+        size = 'サイズエラー'
 
     # 在庫管理の場合は以降はスキップ
     if stock_check is None:
@@ -199,13 +202,13 @@ def get_description(driver, stock_check=None):
         desc = '\n\n'.join(text_list)
 
         # サイズガイド取得
-        size_button_xpath = '//*[@id="slice-pdp"]/div/div[1]/div[1]/div[3]/div/div[3]/div[2]/div/button'
-        if len(driver.find_elements_by_xpath(size_button_xpath)):
-            size_guide_button = driver.find_element_by_xpath(size_button_xpath)
+        if len(div_el.find_elements_by_class_name('_05fa91')) > 0:
+            size_guide_div = div_el.find_element_by_class_name('_05fa91')
+            size_guide_button = size_guide_div.find_element_by_tag_name('button')
             size_guide_button.click()
-            # WebDriverWait(driver, 10).until(
-            #     EC.visibility_of_element_located(
-            #         (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(
+                    (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
             size_guide = driver.find_elements_by_css_selector(
                 '#panelInner-0 > div > div > table')
             if len(size_guide) > 0:
