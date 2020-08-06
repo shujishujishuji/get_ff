@@ -6,6 +6,7 @@ from stocks import stockapp
 from bym import bymapp
 from main import mainapp
 from aso import asoapp
+from picture_cut import picapp
 
 
 def create_app():
@@ -16,5 +17,6 @@ def create_app():
     app.register_blueprint(stockapp)
     app.register_blueprint(bymapp)
     app.register_blueprint(asoapp)
+    app.register_blueprint(picapp)
 
     return app

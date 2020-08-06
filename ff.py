@@ -31,11 +31,11 @@ from logger import logger, log
 from driver_setup import set_driver
 from set_spsheet import set_ss
 from db import Stock, engine
-from picture_cut import ImageProcessing
+# from picture_cut import ImageProcessing
 
 ffapp = Blueprint('ffapp', __name__)
 
-ip = ImageProcessing()
+# ip = ImageProcessing()
 
 
 class GetList:
@@ -134,8 +134,9 @@ def get_src(driver, tag_name, img_suffix, folder_name):
 
     # 画像ファイルのダウンロード
     for i, s in enumerate(url_lis):
+        logger.info(f'src_url: {s}')
         urllib.request.urlretrieve(
-            s, os.path.join(img_path, '{}{}'.format(i, img_suffix)))
+            s, os.path.join(img_path, '{}{}'.format(i+1, img_suffix)))
 
 
 @log
@@ -148,27 +149,28 @@ def get_description(driver, stock_check=None):
     """
     # タイトルdivの取得
     WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CLASS_NAME, '_c40757')))
-    div_el = driver.find_element_by_class_name('_c40757')
+                EC.visibility_of_element_located((By.CLASS_NAME, '_c40757')))
+    soup = bs(driver.page_source, 'html.parser')
+
+    cl = soup.find('div', {'class': '_c40757'})
+    soup_span = cl.find('span', {'data-tstid': "oneSizeLabel"})
 
     # 価格文字列を数字だけ抽出 headlessじゃないとダメ
-    price_el = div_el.find_element_by_class_name('_81fc25')
-    price = price_el.text
-    p_price = price_el.find_element_by_css_selector('div > span').text
+    price_el = soup.find('div', {'class': '_81fc25'})
+    price = price_el.get_text()
+    p_price = price_el.find('span', {'data-tstid': 'priceInfo-original'}).get_text()
     pure_price = re.sub("\\D", "", p_price)
 
-    # サイズと価格と在庫を取得
-    if len(div_el.find_elements_by_class_name('_05b1cb')) > 0:
+    # サイズと価格と在庫を取得、通信状況によって取得できないことがある
+    if soup_span != None:
         size = 'one size'
-    elif len(div_el.find_elements_by_id('sizesDropdown')) > 0:
-        select_id = div_el.find_element_by_id('sizesDropdown').find_element_by_id('dropdown')
-        print(select_id)
+    else:
+        select_id = driver.find_element_by_id('dropdown')
         select = Select(select_id)
         sizes = select.options
         size_list = [sizes[i].text for i, _ in enumerate(sizes)]
         size = '\n'.join(size_list[1:])
-    else:
-        size = 'サイズエラー'
+
 
     # 在庫管理の場合は以降はスキップ
     if stock_check is None:
@@ -179,8 +181,8 @@ def get_description(driver, stock_check=None):
                 (By.CSS_SELECTOR, '#bannerComponents-Container > h1')))
         title = driver.find_element_by_css_selector(
             '#bannerComponents-Container > h1').text
-        # log出力
         logger.info(f'title: {title}')
+
         # 商品説明,フィッティングガイド取得
         element_list = ['商品説明', 'フィッティングガイド', '配送＆返品無料引き取りサービス']
         text_list = []
@@ -202,21 +204,25 @@ def get_description(driver, stock_check=None):
         desc = '\n\n'.join(text_list)
 
         # サイズガイド取得
-        if len(div_el.find_elements_by_class_name('_05fa91')) > 0:
+        if soup_span is None:
+            div_el = driver.find_element_by_class_name('_c40757')
             size_guide_div = div_el.find_element_by_class_name('_05fa91')
             size_guide_button = size_guide_div.find_element_by_tag_name('button')
             size_guide_button.click()
-            WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located(
-                    (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
-            size_guide = driver.find_elements_by_css_selector(
-                '#panelInner-0 > div > div > table')
-            if len(size_guide) > 0:
-                size_guide = size_guide[0].text
-            else:
+            if len(driver.find_elements_by_id('SizeGuideEmptypage')) > 0:
                 size_guide = 'サイズガイドエラー'
+            else:
+                WebDriverWait(driver, 10).until(
+                    EC.visibility_of_element_located(
+                        (By.CSS_SELECTOR, '#panelInner-0 > div > div > table')))
+                size_guide = driver.find_elements_by_css_selector(
+                    '#panelInner-0 > div > div > table')
+                if len(size_guide) > 0:
+                    size_guide = size_guide[0].text
+                else:
+                    size_guide = 'サイズガイドエラー'
         else:
-            size_guide = 'サイズガイドなし'
+            size_guide = ''
         return price, size, desc, size_guide, title, pure_price
     return price, size
 
@@ -242,11 +248,11 @@ def get_info():
     try:
         # GUIからの入力値
         deadline = request.form.get('deadline')
-        ratio = request.form.get('ratio')
         overship = request.form.get('overship')
         domship = request.form.get('domship')
         cat = request.form.get('category')
         catchcopy = request.form.get('catchcopy')
+        # bg_img = request.form.get('backgroundimg')
 
         # spred_sheetのセットアップ
         sss = set_ss(cf.get('SS_SHEET', 'KEY_FILE'), cf.get('SS_SHEET', 'SHEET_NAME'))
@@ -257,6 +263,7 @@ def get_info():
 
         # スプレッドシートからURLリスト作成
         url_lis = ss.col_values(9)[1:]
+        logger.info(f'URLリスト: {len(url_lis)}')
 
         # データベースから在庫情報を辞書に読み込む
         Session = sessionmaker(bind=engine)
@@ -271,30 +278,54 @@ def get_info():
         stock_url = []
         for x in stock:
             stock_url.append(x['url'])
+        logger.info(f'在庫URLリスト: {len(stock_url)}')
 
         driver = set_driver('https://www.google.com/')
         # URL毎の処理
-        price = size = desc = size_guide = title = pure_price = 'a'
+
         for i, url in enumerate(url_lis):
+            #　初期値設定
+            price = size = desc = size_guide = title = pure_price = 'a'
             # log出力
-            logger.info(f'URL: {url}')
+            logger.info(f'targetURL: {i}: {url}')
             if url in stock_url:
                 continue
 
             # driverセットアップ
             driver.get(url)
-            # 画像取得
-            get_src(driver, '出品', '.jpg', str(i+1))
-            # 商品説明取得
-            price, size, desc, size_guide, title, pure_price = get_description(driver)
+            for _ in range(3):
+                try:
+                    # 画像取得
+                    get_src(driver, '出品', '.jpg', str(i+1))
+                except Exception as e:
+                    logger.error(f'retry: {e}')
+                    continue
+                else:
+                    break
+
+            for _ in range(3):
+                try:
+                    # 商品説明取得
+                    price, size, desc, size_guide, title, pure_price = get_description(driver)
+                except Exception as e:
+                    driver.get(url)
+                    logger.error(f'retry: {e}')
+                    time.sleep(1)
+                    continue
+                else:
+                    break
+
+            logger.info(f'タイトル: {title}')
+            logger.info(f'サイズ: {size}')
 
             # ブランドの取得
             t = re.search(r"^.*", title).group(0)
 
             # 画像編集
-            if title != 'a':
-                img_path = os.path.join('出品', str(i+1), '0.jpg')
-                ip.add_txt(img_path, t)
+            # if title != 'a':
+            #     img_path = os.path.join('出品', str(i+1), '1.jpg')
+            #     bg_path = os.path.join('bg', bg_img)
+            #     ip.add_title(t, img_path, bg_path)
 
             # 初期化
             bland_str = category_str = area_str = ''
@@ -326,6 +357,8 @@ def get_info():
             desc = '\n'.join(desc_list)
 
             # スプレッドシート への書き込み
+            now = dt.now()
+            today = '在庫状況:{0}月{1}日現在'.format(now.month, now.day)
             cell_row = i+2
             ss_data = [{'range': 'A{}:H{}'.format(cell_row, cell_row),
                         'values': [[str(i+1),
@@ -333,7 +366,7 @@ def get_info():
                                     bland_str, '',
                                     category_str,
                                     desc,
-                                    size + '\n\n' + size_guide,
+                                    today + '\n\n' + size + '\n\n' + size_guide,
                                     deadline]]},
                        {'range': 'J{}'.format(cell_row),
                         'values': [[area_str]]},
@@ -350,7 +383,7 @@ def get_info():
             ses = Session()
             ses.add(stock_obj)
             ses.commit()
-            ses.close()
+            # ses.close()
         result = 'True'
     except Exception as e:
         result = str(e)

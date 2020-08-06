@@ -106,7 +106,7 @@ def aso_get_src(driver, tag_name, img_suffix, folder_name):
 
     for i, x in enumerate(img_list):
         img = x.find_element_by_class_name('img').get_attribute('src')
-        urllib.request.urlretrieve(img, os.path.join(img_path, '{}{}'.format(i, img_suffix)))
+        urllib.request.urlretrieve(img, os.path.join(img_path, '{}{}'.format(i+1, img_suffix)))
 
 
 @log
@@ -208,7 +208,7 @@ def aso_get_info():
     try:
         # GUIからの入力値
         deadline = request.form.get('deadline')
-        ratio = request.form.get('ratio')
+        # bg_img = request.form.get('backgroundimg')
         overship = request.form.get('overship')
         exchange = request.form.get('exchange')
         cat = request.form.get('category')
@@ -267,9 +267,10 @@ def aso_get_info():
             cate = title
 
             # 画像編集
-            if title != 'a':
-                img_path = os.path.join('出品', str(i+1), '0.jpg')
-                ip.add_txt(img_path, brand)
+            # if title != 'a':
+            #     img_path = os.path.join('出品', str(i+1), '0.jpg')
+            #     bg_path = os.path.join('bg', bg_img)
+            #     ip.add_txt(img_path, brand, bg_path)
 
             # 初期化
             bland_str = category_str = ''

@@ -27,7 +27,7 @@
 <!--パネルタブ-->
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item"><a href="#home" class="nav-link active" data-toggle="tab" role="tab">商品情報取得</a></li>
-    <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">ポスト</a></li>
+    <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">画像加工</a></li>
     <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
     <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
@@ -37,6 +37,7 @@
 <div class="tab-content">
     <!--farfetchパネルコンテンツ-->
     <div class="tab-pane fade show active" id="home" role="tabpanel">
+        <!--対象サイト選択のグループ-->
         <div class="form-group col">
             <h4>【対象サイト】</h4>
             <label for="site">サイト名</label>
@@ -45,7 +46,7 @@
                 <option value="ASOS">ASOS</option>
             </select>
         </div>
-        <!--一括取得のグループ-->
+        <!--URLリスト取得のグループ-->
         <div class="form-group p-3">
             <h4>【URLリスト取得】</h4>
             <label for="url">URL</label>
@@ -68,8 +69,8 @@
                 <input type="text" id="deadline" name="deadline" class="form-control" placeholder="yyyy/mm/dd" v-model="post_deadline">
             </div>
             <div class="form-group col">
-                <label for="ratio">倍率</label>
-                <input type="text" id="ratio" name="ratio" class="form-control" placeholder="???％(今はスルー)" v-model="post_ratio">
+                <label for="post">ポスト</label>
+                <input type="text" id="post" name="post" class="form-control" placeholder="" v-model="post">
             </div>
         </div>
         <div class="form-row">
@@ -91,7 +92,15 @@
 
     <!--パネルコンテンツ-->
     <div class="tab-pane fade p-3" id="second" role="tabpanel">
-
+        <!--画像加工のグループ-->
+        <div class="form-group p-3">
+            <h4>【画像加工】</h4>
+                <label for="backgroundimg">背景画像</label>
+                <input type="text" id="backgroundimg" name="backgroundimg" class="form-control" placeholder="img.jpg" v-model="post_backgroundimg">
+                <label for="title">テキスト</label>
+                <input type="text" id="title" name="title" class="form-control" placeholder="Gucci" v-model="post_title">
+            <button v-on:click="postImage" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">画像加工</button>
+        </div>
     </div>
 
     <!--在庫管理パネルコンテンツ-->
@@ -173,14 +182,15 @@ Vue.component('mycomp', {
             alert_msg: '対象サイトの入力を忘れないで！！',
             post_id: '',
             post_deadline: '',
-            post_ratio: '',
             post_overship: '',
             post_exchange: '1',
             post_category: 'メンズ',
             post_catchcopy: '【送料輸入税込】',
             stock_id: '',
             bym_data: ['','','','','',''],
-            post_site: ''
+            post_site: '',
+            post_backgroundimg: '',
+            post_title: ''
         }
     },
     methods:{
@@ -218,7 +228,6 @@ Vue.component('mycomp', {
             this.alert_msg = '商品情報取得実行中です。けっこう時間かかります。しばらくお待ちください。';
             let formData = new FormData();
             formData.append("deadline", this.post_deadline);
-            formData.append("ratio", this.post_ratio);
             formData.append("overship", this.post_overship);
             formData.append("exchange", this.post_exchange);
             formData.append("category", this.post_category);
@@ -340,6 +349,30 @@ Vue.component('mycomp', {
             let self = this;
             $.get("/all_bym_data", function(data){
                 self.bym_data = data
+            });
+        },
+        // create_image
+        postImage: function(){
+            this.alert_msg = '画像加工中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("backgroundimg", this.post_backgroundimg);
+            formData.append("title", this.post_title);
+            let self = this;
+            $.ajax({
+                type: 'POST',
+                url: '/post_img',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.alert_msg = '画像加工ができました。確認してください。';
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
             });
         },
     },
