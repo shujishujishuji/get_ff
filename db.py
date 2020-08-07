@@ -59,3 +59,30 @@ class Sales(Base):
             'access': str(self.access),
             'created': str(self.created)
         }
+
+
+class Bland(Base):
+    __tablename__ = 'bland'
+
+    id = Column(Integer, primary_key=True)
+    img = Column(Text)
+    img_file = Column(Text)
+    title = Column(Text)
+    price = Column(Text)
+    shopper_status = Column(Text)
+    shopper_name = Column(Text)
+    shopper_url = Column(Text)
+    category = Column(Text)
+
+    def to_dict(self):
+        return {
+            'id': int(self.id),
+            'img': self.img,
+            'img_file': self.img_file,
+            'title': self.title,
+            'price': self.price,
+            'shopper_status': self.shopper_status,
+            'shopper_name': self.shopper_name,
+            'shopper_url': self.shopper_url,
+            'category': self.category
+        }

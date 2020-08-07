@@ -16,7 +16,7 @@ class ResearcherPipeline:
 
     @classmethod
     def get_database(cls):
-        cls._db = sqlite3.connect(os.path.join(os.getcwd(), 'buyma.sqlite3'))
+        cls._db = sqlite3.connect(os.path.join(os.getcwd(), 'items.sqlite3'))
 
         cursor = cls._db.cursor()
         cursor.execute('CREATE TABLE IF NOT EXISTS bland(\

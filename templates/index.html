@@ -31,6 +31,7 @@
     <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
     <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
+    <li class="nav-item"><a href="#sixs" class="nav-link" data-toggle="tab" role="tab">リサーチ</a></li>
 </ul>
 
 <!--パネルコンテンツ-->
@@ -167,6 +168,36 @@
             </tbody>
         </table>
     </div>
+    <!--リサーチパネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="sixs" role="tabpanel">
+        <!--リサーチのグループ-->
+        <div class="form-group">
+            <h4>【BUYMAブランドスクレイピングリサーチ】</h4>
+            <label for="r_url">スクレイピング対象のURL(BUYMAのブランド・カテゴリで絞ったURL)</label>
+            <input type="text" id="r_url" name="r_url" class="form-control" placeholder="http://www.xxx.com" v-model="research_url">
+            <button v-on:click="postScraping" class="btn btn-primary">スクレイピング 開始</button>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>価格</th>
+                    <th>ステータス</th>
+                    <th>名前</th>
+                    <th>カテゴリー</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in research_bland_data">
+                    <th>{{item.title}}</th>
+                    <th>{{item.price}}</th>
+                    <th>{{item.shopper_status}}</th>
+                    <th>{{item.shopper_name}}</th>
+                    <th>{{item.category}}</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </div>
@@ -193,7 +224,9 @@ Vue.component('mycomp', {
             post_site: '',
             post_backgroundimg: '',
             post_title: '',
-            post_font: ''
+            post_font: '',
+            research_url: '',
+            research_bland_data: ['','','','','',]
         }
     },
     methods:{
@@ -372,6 +405,35 @@ Vue.component('mycomp', {
                 success: function(data) {
                     if(data != null){
                         self.alert_msg = '画像加工ができました。確認してください。';
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
+            });
+        },
+        // bland_scraping
+        postScraping: function(){
+            this.alert_msg = 'BUYMAブランドスクレイピング中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("research_url", this.research_url);
+            let self = this;
+            $.ajax({
+                type: 'POST',
+                url: '/bland_research',
+                data: formData,
+                processData: false,
+                contentType: false,
+
+                success: function(data) {
+                    if(data != null){
+                        self.research_bland_data = data;
+                        let sum = 0;
+                        for (let i = 0; i < data.length; i++) {
+                            sum += data[i].price.replace(/[^0-9]/g, '');
+                            };
+                        let ave = sum / data.length
+                        self.alert_msg = '平均価格：' + ave;
                     }
                 },
                 error: function(request, status, err) {
