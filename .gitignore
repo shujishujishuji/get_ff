@@ -6,3 +6,5 @@
 logfile*
 __pycache__
 bg/
+*.txt
+items/

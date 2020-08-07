@@ -180,13 +180,13 @@ class ImageProcessing():
         return f_path
 
     # pillowのテキスト追加
-    def add_title(self, txt, img_path, bg_path):
+    def add_title(self, txt, img_path, bg_path, font):
         f_path = self.add_bg_item(img_path, bg_path)
         img = Image.open(f_path)
         draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype('~/Library/Fonts/Oranienbaum.ttf', 48)
-        w, h = draw.textsize(txt, font=font)
-        draw.text((20, 20), text=txt, font=font, fill=(0, 0, 0))
+        txt_font = ImageFont.truetype(f'~/Library/Fonts/{font}', 48)
+        w, h = draw.textsize(txt, font=txt_font)
+        draw.text((20, 20), text=txt, font=txt_font, fill=(0, 0, 0))
         img.save(f_path)
 
     # cv2のテキスト追加
@@ -246,6 +246,7 @@ def c_pic(pic_path):
 @picapp.route('/post_img', methods=['POST'])
 def post_url():
     bg_path = os.path.join('bg', request.form.get('backgroundimg'))
+    font = request.form.get('font')
     txt = request.form.get('title')
     ip = ImageProcessing()
     path = '出品'
@@ -253,7 +254,7 @@ def post_url():
     files_dir = [f for f in files if os.path.isdir(os.path.join(path, f))]
     for f_dir in files_dir:
         img_path = os.path.join(path, f_dir, '1.jpg')
-        ip.add_title(txt, img_path, bg_path)
+        ip.add_title(txt, img_path, bg_path, font)
     return 'end'
 
 

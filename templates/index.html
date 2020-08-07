@@ -99,6 +99,8 @@
                 <input type="text" id="backgroundimg" name="backgroundimg" class="form-control" placeholder="img.jpg" v-model="post_backgroundimg">
                 <label for="title">テキスト</label>
                 <input type="text" id="title" name="title" class="form-control" placeholder="Gucci" v-model="post_title">
+                <label for="font">フォント</label>
+                <input type="text" id="font" name="font" class="form-control" placeholder="Oranienbaum.ttf" v-model="post_font">
             <button v-on:click="postImage" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">画像加工</button>
         </div>
     </div>
@@ -190,7 +192,8 @@ Vue.component('mycomp', {
             bym_data: ['','','','','',''],
             post_site: '',
             post_backgroundimg: '',
-            post_title: ''
+            post_title: '',
+            post_font: ''
         }
     },
     methods:{
@@ -357,6 +360,7 @@ Vue.component('mycomp', {
             let formData = new FormData();
             formData.append("backgroundimg", this.post_backgroundimg);
             formData.append("title", this.post_title);
+            formData.append("font", this.post_font);
             let self = this;
             $.ajax({
                 type: 'POST',
