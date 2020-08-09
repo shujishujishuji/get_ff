@@ -127,7 +127,7 @@ def scrape():
 
     else:
         # テーブルがあればそのデータを取得
-        logger.log(f'データ取得済み')
+        logger.info('データ取得済み')
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(''' SELECT * from '%s' ''' % table_name)

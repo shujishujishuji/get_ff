@@ -103,6 +103,12 @@
                 <input type="text" id="title" name="title" class="form-control" placeholder="Gucci" v-model="post_title">
                 <label for="font">フォント</label>
                 <input type="text" id="font" name="font" class="form-control" placeholder="Oranienbaum.ttf" v-model="post_font">
+                <label for="pattern">パターン</label>
+                <select type="text" id="pattern" name="pattern" class="form-control" placeholder="" v-model="post_pattern">
+                    <option value="white_bg">white_bg</option>
+                    <option value="black_margin">black_margin</option>
+                    <option value="その他">その他</option>
+                </select>
             <button v-on:click="postImage" class="btn btn-primary col-3 col-sm-3 col-md-2 col-lg-2 col-xl-2">画像加工</button>
         </div>
     </div>
@@ -215,7 +221,7 @@
                 <tr>
                     <th>タイトル</th>
                     <th>日付</th>
-                    <th>日付</th>
+                    <th>商品URL</th>
                 </tr>
             </thead>
             <tbody>
@@ -257,7 +263,8 @@ Vue.component('mycomp', {
             research_url: '',
             research_bland_data: ['','','','','',],
             saled_url: '',
-            saled_bland: ''
+            saled_bland: '',
+            post_pattern: ''
         }
     },
     methods:{
@@ -425,6 +432,7 @@ Vue.component('mycomp', {
             formData.append("backgroundimg", this.post_backgroundimg);
             formData.append("title", this.post_title);
             formData.append("font", this.post_font);
+            formData.append("pattern", this.post_pattern);
             let self = this;
             $.ajax({
                 type: 'POST',
@@ -460,12 +468,15 @@ Vue.component('mycomp', {
                     if(data != null){
                         self.research_bland_data = data;
                         let sum = 0;
+                        var arr = [];
                         for (let i = 0; i < data.length; i++) {
                             let p = Number(data[i].price.replace(/[^0-9]/g, ''));
+                            arr.push(data[i].shopper_name);
                             sum += p;
                             };
+                        const arr2 = Array.from(new Set(arr))
                         var average = sum / data.length;
-                        self.alert_msg = '平均価格:' + Math.floor(average) + '  商品数:' + data.length;
+                        self.alert_msg = '平均価格:' + Math.floor(average) + '  　商品数:' + data.length + '  　ショッパー数:' + arr2.length;
                     }
                 },
                 error: function(request, status, err) {
