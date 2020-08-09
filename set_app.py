@@ -8,6 +8,7 @@ from main import mainapp
 from aso import asoapp
 from picture_cut import picapp
 from bym_search import researchapp
+from bym_saled_search import saledapp
 
 
 def create_app():
@@ -20,5 +21,6 @@ def create_app():
     app.register_blueprint(asoapp)
     app.register_blueprint(picapp)
     app.register_blueprint(researchapp)
+    app.register_blueprint(saledapp)
 
     return app

@@ -28,6 +28,7 @@ from scrapy import signals
 from scrapy.crawler import CrawlerRunner
 from scrapy.signalmanager import dispatcher
 from researcher.spiders.bym_spider import BlandSpider
+from logger import logger, log
 
 from flask import request, Blueprint, jsonify, url_for, redirect
 from db import engine, Bland
@@ -79,6 +80,7 @@ def average_price(self, category):
 
 
 @researchapp.route('/bland_research', methods=['POST'])
+@log
 def bland_research():
     if request.method == 'POST':
         s = request.form['research_url']
@@ -93,7 +95,7 @@ def bland_research():
 def scrape():
     global baseURL
     global output_data
-    table_name = baseURL.split("/")[-2] + new_date
+    table_name = baseURL + new_date
     conn = sqlite3.connect('bland.sqlite3')
     # テーブルがあるかどうか確認
     c = conn.cursor()
@@ -101,6 +103,7 @@ def scrape():
 
     if(c.fetchone()[0] == 0):
         # テーブルがなかった場合は作成
+        logger.info(f'取得対象：{baseURL}')
         scrape_with_crochet(baseURL=baseURL)
         time.sleep(100)
 
@@ -124,6 +127,7 @@ def scrape():
 
     else:
         # テーブルがあればそのデータを取得
+        logger.log(f'データ取得済み')
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(''' SELECT * from '%s' ''' % table_name)
@@ -134,6 +138,7 @@ def scrape():
     return output_data
 
 
+@log
 @crochet.run_in_reactor
 def scrape_with_crochet(baseURL):
     dispatcher.connect(_crawler_result, signal=signals.item_scraped)

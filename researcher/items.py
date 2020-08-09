@@ -16,3 +16,10 @@ class ResearcherItem(scrapy.Item):
     shopper_url = scrapy.Field()
     category = scrapy.Field()
 
+
+class SaledItem(scrapy.Item):
+    img = scrapy.Field()
+    img_file = scrapy.Field()
+    title = scrapy.Field()
+    item_url = scrapy.Field()
+    dates = scrapy.Field()

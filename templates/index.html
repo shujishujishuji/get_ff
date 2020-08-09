@@ -32,6 +32,7 @@
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
     <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
     <li class="nav-item"><a href="#sixs" class="nav-link" data-toggle="tab" role="tab">リサーチ</a></li>
+    <li class="nav-item"><a href="#seven" class="nav-link" data-toggle="tab" role="tab">販売リサーチ</a></li>
 </ul>
 
 <!--パネルコンテンツ-->
@@ -198,6 +199,34 @@
             </tbody>
         </table>
     </div>
+    <!--受注リサーチパネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="seven" role="tabpanel">
+        <!--受注リサーチのグループ-->
+        <div class="form-group">
+            <h4>【BUYMA受注リサーチ】</h4>
+            <label for="sal_url">対象のURL(ブランドスクレイピングしたURL)</label>
+            <input type="text" id="sal_url" name="sal_url" class="form-control" placeholder="http://www.xxx.com" v-model="saled_url">
+            <label for="bland_name">対象のブランド名(受注リストから抽出する)</label>
+            <input type="text" id="bland_name" name="bland_name" class="form-control" placeholder="Gucci" v-model="saled_bland">
+            <button v-on:click="postSaled" class="btn btn-primary">受注確認</button>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>日付</th>
+                    <th>日付</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in saled_data">
+                    <th>{{item.title}}</th>
+                    <th>{{item.dates}}</th>
+                    <th>{{item.item_url}}</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </div>
@@ -226,7 +255,9 @@ Vue.component('mycomp', {
             post_title: '',
             post_font: '',
             research_url: '',
-            research_bland_data: ['','','','','',]
+            research_bland_data: ['','','','','',],
+            saled_url: '',
+            saled_bland: ''
         }
     },
     methods:{
@@ -430,10 +461,35 @@ Vue.component('mycomp', {
                         self.research_bland_data = data;
                         let sum = 0;
                         for (let i = 0; i < data.length; i++) {
-                            sum += data[i].price.replace(/[^0-9]/g, '');
+                            let p = Number(data[i].price.replace(/[^0-9]/g, ''));
+                            sum += p;
                             };
-                        let ave = sum / data.length
-                        self.alert_msg = '平均価格：' + ave;
+                        var average = sum / data.length;
+                        self.alert_msg = '平均価格:' + Math.floor(average) + '  商品数:' + data.length;
+                    }
+                },
+                error: function(request, status, err) {
+                    self.alert_msg = 'URL送信時にエラーが発生しました。';
+                }
+            });
+        },
+        // saled_data
+        postSaled: function(){
+            this.alert_msg = '受注データ取得中です。けっこう時間かかります。しばらくお待ちください。';
+            let formData = new FormData();
+            formData.append("saled_url", this.saled_url);
+            formData.append("saled_bland", this.saled_bland);
+            let self = this;
+            $.ajax({
+                type: 'POST',
+                url: '/saled_research',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if(data != null){
+                        self.saled_data = data;
+                        self.alert_msg = '販売数:' + data.length;
                     }
                 },
                 error: function(request, status, err) {
