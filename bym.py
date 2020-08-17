@@ -45,7 +45,7 @@ def scp_b():
     b_lis = []
     alist = [chr(i) for i in range(97, 97+26)]
     alist.append('other')
-    driver = set_driver('https://www.buyma.com/list/mens.html', True)
+    driver = set_driver('https://www.buyma.com/list/fashion.html', True)
     for i in alist:
         target_ul_list = driver.find_elements_by_css_selector(
             f'#brindex_{i} > ul > li')
@@ -228,4 +228,4 @@ def syopper_data(url):
 
 
 if __name__ == '__main__':
-    syopper_data('https://www.buyma.com/buyer/2488909.html')
+    scp_b()

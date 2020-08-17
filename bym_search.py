@@ -82,6 +82,8 @@ def average_price(self, category):
 @researchapp.route('/bland_research', methods=['POST'])
 @log
 def bland_research():
+    """カテゴリーで出品されている商品一覧をスクレイピングする
+    """
     if request.method == 'POST':
         s = request.form['research_url']
         global baseURL

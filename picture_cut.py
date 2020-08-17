@@ -131,13 +131,15 @@ class ImageProcessing():
     def add_title(self, txt, font, f_path):
         img = Image.open(f_path)
         draw = ImageDraw.Draw(img)
-        txt_font = ImageFont.truetype(f'~/Library/Fonts/{font}', 48)
+        txt_font = ImageFont.truetype(f'~/Library/Fonts/{font}', 60)
         w, h = draw.textsize(txt, font=txt_font)
         draw.text((20, 20), text=txt, font=txt_font, fill=(0, 0, 0))
         img.save(f_path)
 
     def make_square_add_margin(self, img_path, txt, font):
         # 画像の読み込み
+        if not os.path.exists(img_path):
+            img_path = os.path.splitext(img_path)[0] + '.png'
         img = Image.open(img_path)
 
         new_path_lis = img_path.split('/')
@@ -157,7 +159,7 @@ class ImageProcessing():
             # pngとして保存
             re_path = new_path.replace('.jpg', '.png')
             result.save(re_path)
-            self.add_text_png(re_path, h, limit, round(limit/2), txt, font)
+            self.add_text_png(re_path, h, limit, round(limit/3), txt, font)
         else:
             size = w
             limit = w - h

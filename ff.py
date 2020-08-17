@@ -280,7 +280,7 @@ def get_info():
             stock_url.append(x['url'])
         logger.info(f'在庫URLリスト: {len(stock_url)}')
 
-        driver = set_driver('https://www.google.com/')
+        # driver = set_driver('https://www.google.com/')
         # URL毎の処理
 
         for i, url in enumerate(url_lis):
@@ -292,7 +292,8 @@ def get_info():
                 continue
 
             # driverセットアップ
-            driver.get(url)
+            # driver.get(url)
+            driver = set_driver(url)
             for _ in range(3):
                 try:
                     # 画像取得
@@ -353,8 +354,12 @@ def get_info():
                 area_str = area_lis[0]
 
             # ブランド名、商品名、発送地を削除
-            del desc_list[_index[0]], desc_list[0:3], desc_list[-1]
+            # del desc_list[_index[0]]
+            del desc_list[0:3], desc_list[-1]
             desc = '\n'.join(desc_list)
+
+            # driver破棄
+            driver.quit()
 
             # スプレッドシート への書き込み
             now = dt.now()
@@ -372,7 +377,7 @@ def get_info():
                         'values': [[area_str]]},
                        {'range': 'Z{}'.format(cell_row),
                         'values': [[pure_price]]},
-                       {'range': 'AD{}:AE{}'.format(cell_row, cell_row),
+                       {'range': 'AE{}:AF{}'.format(cell_row, cell_row),
                         'values': [[overship, domship]]}]
             ss.batch_update(ss_data)
 
@@ -383,7 +388,7 @@ def get_info():
             ses = Session()
             ses.add(stock_obj)
             ses.commit()
-            # ses.close()
+            ses.close()
         result = 'True'
     except Exception as e:
         result = str(e)

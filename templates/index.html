@@ -26,19 +26,77 @@
 
 <!--パネルタブ-->
 <ul class="nav nav-tabs" role="tablist">
-    <li class="nav-item"><a href="#home" class="nav-link active" data-toggle="tab" role="tab">商品情報取得</a></li>
+    <li class="nav-item"><a href="#sixs" class="nav-link active" data-toggle="tab" role="tab">リサーチ</a></li>
+    <li class="nav-item"><a href="#seven" class="nav-link" data-toggle="tab" role="tab">販売リサーチ</a></li>
+    <li class="nav-item"><a href="#home" class="nav-link" data-toggle="tab" role="tab">商品情報取得</a></li>
     <li class="nav-item"><a href="#second" class="nav-link" data-toggle="tab" role="tab">画像加工</a></li>
     <li class="nav-item"><a href="#thred" class="nav-link" data-toggle="tab" role="tab">在庫管理</a></li>
     <li class="nav-item"><a href="#fours" class="nav-link" data-toggle="tab" role="tab">お掃除</a></li>
     <li class="nav-item"><a href="#fifs" class="nav-link" data-toggle="tab" role="tab">BUYMA</a></li>
-    <li class="nav-item"><a href="#sixs" class="nav-link" data-toggle="tab" role="tab">リサーチ</a></li>
-    <li class="nav-item"><a href="#seven" class="nav-link" data-toggle="tab" role="tab">販売リサーチ</a></li>
 </ul>
 
 <!--パネルコンテンツ-->
 <div class="tab-content">
-    <!--farfetchパネルコンテンツ-->
-    <div class="tab-pane fade show active" id="home" role="tabpanel">
+    <!--リサーチパネルコンテンツ-->
+    <div class="tab-pane fade show active" id="sixs" role="tabpanel">
+        <!--リサーチのグループ-->
+        <div class="form-group">
+            <h4>【BUYMAブランドスクレイピングリサーチ】</h4>
+            <label for="r_url">スクレイピング対象のURL(BUYMAのブランド・カテゴリで絞ったURL)</label>
+            <input type="text" id="r_url" name="r_url" class="form-control" placeholder="http://www.xxx.com" v-model="research_url">
+            <button v-on:click="postScraping" class="btn btn-primary">スクレイピング 開始</button>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>価格</th>
+                    <th>ステータス</th>
+                    <th>名前</th>
+                    <th>カテゴリー</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in research_bland_data">
+                    <th>{{item.title}}</th>
+                    <th>{{item.price}}</th>
+                    <th>{{item.shopper_status}}</th>
+                    <th>{{item.shopper_name}}</th>
+                    <th>{{item.category}}</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!--受注リサーチパネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="seven" role="tabpanel">
+        <!--受注リサーチのグループ-->
+        <div class="form-group">
+            <h4>【BUYMA受注リサーチ】</h4>
+            <label for="sal_url">対象のURL(ブランドスクレイピングしたURL)アクセス制限に引っかかるので多様禁止！！</label>
+            <input type="text" id="sal_url" name="sal_url" class="form-control" placeholder="http://www.xxx.com" v-model="saled_url">
+            <label for="bland_name">対象のブランド名(受注リストから抽出する)</label>
+            <input type="text" id="bland_name" name="bland_name" class="form-control" placeholder="Gucci" v-model="saled_bland">
+            <button v-on:click="postSaled" class="btn btn-primary">受注確認</button>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>日付</th>
+                    <th>商品URL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in saled_data">
+                    <th>{{item.title}}</th>
+                    <th>{{item.dates}}</th>
+                    <th>{{item.item_url}}</th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!--情報取得パネルコンテンツ-->
+    <div class="tab-pane fade p-3" id="home" role="tabpanel">
         <!--対象サイト選択のグループ-->
         <div class="form-group col">
             <h4>【対象サイト】</h4>
@@ -175,64 +233,7 @@
             </tbody>
         </table>
     </div>
-    <!--リサーチパネルコンテンツ-->
-    <div class="tab-pane fade p-3" id="sixs" role="tabpanel">
-        <!--リサーチのグループ-->
-        <div class="form-group">
-            <h4>【BUYMAブランドスクレイピングリサーチ】</h4>
-            <label for="r_url">スクレイピング対象のURL(BUYMAのブランド・カテゴリで絞ったURL)</label>
-            <input type="text" id="r_url" name="r_url" class="form-control" placeholder="http://www.xxx.com" v-model="research_url">
-            <button v-on:click="postScraping" class="btn btn-primary">スクレイピング 開始</button>
-        </div>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>タイトル</th>
-                    <th>価格</th>
-                    <th>ステータス</th>
-                    <th>名前</th>
-                    <th>カテゴリー</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="item in research_bland_data">
-                    <th>{{item.title}}</th>
-                    <th>{{item.price}}</th>
-                    <th>{{item.shopper_status}}</th>
-                    <th>{{item.shopper_name}}</th>
-                    <th>{{item.category}}</th>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <!--受注リサーチパネルコンテンツ-->
-    <div class="tab-pane fade p-3" id="seven" role="tabpanel">
-        <!--受注リサーチのグループ-->
-        <div class="form-group">
-            <h4>【BUYMA受注リサーチ】</h4>
-            <label for="sal_url">対象のURL(ブランドスクレイピングしたURL)</label>
-            <input type="text" id="sal_url" name="sal_url" class="form-control" placeholder="http://www.xxx.com" v-model="saled_url">
-            <label for="bland_name">対象のブランド名(受注リストから抽出する)</label>
-            <input type="text" id="bland_name" name="bland_name" class="form-control" placeholder="Gucci" v-model="saled_bland">
-            <button v-on:click="postSaled" class="btn btn-primary">受注確認</button>
-        </div>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>タイトル</th>
-                    <th>日付</th>
-                    <th>商品URL</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="item in saled_data">
-                    <th>{{item.title}}</th>
-                    <th>{{item.dates}}</th>
-                    <th>{{item.item_url}}</th>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+
 </div>
 
 </div>
@@ -476,7 +477,8 @@ Vue.component('mycomp', {
                             };
                         const arr2 = Array.from(new Set(arr))
                         var average = sum / data.length;
-                        self.alert_msg = '平均価格:' + Math.floor(average) + '  　商品数:' + data.length + '  　ショッパー数:' + arr2.length;
+                        var shopper_item_num = data.length / arr2.length;
+                        self.alert_msg = '平均価格:' + Math.floor(average) + '  　商品数:' + data.length + '  　ショッパー数:' + arr2.length + '    ショッパー当たりの商品数:' + Math.floor(shopper_item_num);
                     }
                 },
                 error: function(request, status, err) {

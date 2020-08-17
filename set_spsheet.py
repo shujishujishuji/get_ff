@@ -28,12 +28,18 @@ def del_cells():
     ss = set_ss(cf.get('SS_SHEET', 'KEY_FILE'), cf.get('SS_SHEET', 'SHEET_NAME')).worksheet('出品シート')
     del_lis = [['', '', '', '', '', '', '', '', '', ''] for _ in range(499)]
     del_z = [[''] for _ in range(499)]
-    del_a = [['', ''] for _ in range(499)]
+    del_ac_af = [['', '', '', ''] for _ in range(499)]
     ss_data = [{'range': 'A2:J500',
                 'values': del_lis},
                {'range': 'Z2:Z500',
                 'values': del_z},
-               {'range': 'AD2:AE500',
-                'values': del_a}]
+               {'range': 'AA2:AA500',
+                'values': del_z},
+               {'range': 'AC2:AF500',
+                'values': del_ac_af},
+               {'range': 'AH2:AH500',
+                'values': del_z},
+               {'range': 'AL2:AL500',
+                'values': del_z}]
     ss.batch_update(ss_data)
     return 'おわた、おわたwww'

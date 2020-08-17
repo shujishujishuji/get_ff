@@ -44,6 +44,8 @@ new_date = dt.now().strftime('%Y%m%d')
 @saledapp.route('/saled_research', methods=['POST'])
 @log
 def saled_research():
+    """ショッパーデータから販売実績のある商品を抽出する。
+    """
     if request.method == 'POST':
         s = request.form['saled_url']
         b = request.form['saled_bland']
